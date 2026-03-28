@@ -1,44 +1,27 @@
-# TRaVeLiNG Tools
+# TRaVeLiNG Tools (Web)
 
-Allows you to create any board pass barcode using a simple web interface:
+旅行向けの小ツールをまとめたWebアプリです。
 
-With this you can do what this guy does here:  
-http://gizmodo.com/hacker-builds-a-qr-code-generator-that-lets-him-into-fa-1784884083
+## 公開ページ
 
-This software was created using freely available resources.  
+https://hbkrkzk.github.io/TRaVeLiNG-Tools-Web/
 
-This tool is intended for educational purposes only, use at your own personal risk.  
+## 主な機能
 
-## GitHub Pages
+1. Skyscanner Link
+- Skyscannerの検索URLをアフィリエイトURLに変換
+- 短縮URL（`skyscanner.app.link`）の展開に対応
+- 短縮URL生成とシェア文面の自動生成
 
-This repository is configured to auto-deploy to GitHub Pages via GitHub Actions.
+2. Boarding Barcode
+- 搭乗券情報から IATA 文字列を生成
+- Aztec / PDF417 バーコードを生成
 
-### First-time setup
-
-1. Open repository settings on GitHub.
-2. Go to **Pages**.
-3. Set **Source** to **GitHub Actions**.
-
-After this one-time setup, every push to `main` automatically builds and deploys the site.
-
-Workflow file:
-- `.github/workflows/deploy-pages.yml`
-
-### Manual deploy trigger
-
-You can also open **Actions** and run **Deploy to GitHub Pages** manually via `workflow_dispatch`.
+3. FIRE Simulator
+- 資産推移のシミュレーション
+- リタイア時資産と資産寿命の可視化
 
 
-### Aztec barcode  
-https://en.wikipedia.org/wiki/Aztec_Code  
-https://github.com/zint/zint  
+## 注意
 
-### BCBP standard (the data that goes into a boarding pass)
-http://www.iata.org/whatwedo/stb/documents/bcbp_implementation_guidev4_jun2009.pdf  
-https://shaun.net/whats-contained-in-a-boarding-pass-barcode/  
-
-### Other useful info  
-Airline codes  
-http://www.airlineandairportlinks.com/frameset_linecode.html  
-International Air Transport Association airport code     
-http://www.airportcodes.org/
+このツールは自己責任で利用してください。機能の一部は外部APIの可用性に依存します。
