@@ -1,0 +1,393 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #1e293b;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(59, 130, 246, 0.09), transparent 35%),
+    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.08), transparent 35%),
+    #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  display: block;
+  min-height: 100vh;
+}
+
+#root {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+}
+
+h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #334155;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.hero {
+  text-align: center;
+  background: linear-gradient(160deg, #ffffff, #f0f9ff);
+}
+
+.hero-subtitle {
+  margin-top: -0.5rem;
+  margin-bottom: 0;
+  color: #64748b;
+}
+
+.tools-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tool-card h2 {
+  justify-content: flex-start;
+}
+
+.tool-card h2 svg {
+  padding: 0.45rem;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  width: 32px;
+  height: 32px;
+}
+
+.tool-description {
+  margin: 0;
+  color: #64748b;
+}
+
+.back-button {
+  margin-bottom: 1rem;
+}
+
+.tool-page-hero {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.tool-page-hero h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.tool-page-illustration {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #dbeafe, #ecfeff);
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 10px 20px -16px rgb(37 99 235 / 0.7);
+}
+
+.compact-page .card {
+  padding: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.compact-page h1 {
+  font-size: 1.95rem;
+  margin-bottom: 1rem;
+}
+
+.compact-page h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
+}
+
+.compact-page .input-grid,
+.compact-page .input-grid-2 {
+  gap: 0.85rem;
+}
+
+.compact-page .input-field {
+  gap: 0.35rem;
+}
+
+.compact-page .input-field input[type='text'],
+.compact-page .input-field input[type='date'],
+.compact-page .input-field select,
+.compact-page .input-field textarea {
+  padding: 0.52rem 0.72rem;
+  font-size: 0.94rem;
+}
+
+.compact-page .barcode-result {
+  padding: 1rem;
+}
+
+.compact-page .chart-container {
+  height: 300px;
+}
+
+.compact-page table {
+  font-size: 0.8rem;
+}
+
+.compact-page th,
+.compact-page td {
+  padding: 0.55rem 0.7rem;
+}
+
+.input-grid,
+.input-grid-2 {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.input-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.input-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-field label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.input-field input[type='text'],
+.input-field input[type='date'],
+.input-field select,
+.input-field textarea {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: #fdfdfd;
+  font-size: 1rem;
+  transition: all 0.2s;
+  color: #1e293b;
+}
+
+.input-field input:focus,
+.input-field select:focus,
+.input-field textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: #fff;
+}
+
+.date-select-container {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.date-select-container select {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.pension-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f1f5f9;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pension-toggle input[type='checkbox'] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.summary-item {
+  text-align: center;
+  padding: 1rem;
+  background: #f1f5f9;
+  border-radius: 0.75rem;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.chart-container {
+  height: 400px;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+th {
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: right;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+td {
+  padding: 0.75rem 1rem;
+  text-align: right;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:hover td {
+  background: #f8fafc;
+}
+
+.age-col {
+  text-align: center;
+  font-weight: 600;
+  color: #334155;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: #2563eb;
+}
+
+.barcode-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  border: 1px dashed #cbd5e1;
+}
+
+canvas {
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.error-msg {
+  color: #ef4444;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.positive {
+  color: #10b981;
+}
+
+.negative {
+  color: #ef4444;
+}
+
+@media (max-width: 640px) {
+  #root {
+    padding: 1rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .input-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
