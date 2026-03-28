@@ -1,0 +1,416 @@
+import React, { useState } from 'react';
+import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle } from 'lucide-react';
+
+interface ResultBoxProps {
+  title: string;
+  icon: React.ReactNode;
+  content: string;
+  onCopy: () => void;
+  copyStatus: 'idle' | 'copied';
+  colorClass: string;
+}
+
+const ResultBox: React.FC<ResultBoxProps> = ({ title, icon, content, onCopy, copyStatus, colorClass }) => (
+  <div className={`result-box ${colorClass}`}>
+    <div className="result-header">
+      {icon}
+      <h3>{title}</h3>
+    </div>
+    <p className="result-content">{content}</p>
+    <button onClick={onCopy} className="button copy-button-alt">
+      {copyStatus === 'copied' ? <CheckCircle size={16} /> : <Copy size={16} />}
+      {copyStatus === 'copied' ? 'コピー完了' : 'コピー'}
+    </button>
+  </div>
+);
+
+
+const SkyscannerTool: React.FC = () => {
+  const [inputUrl, setInputUrl] = useState('');
+  const [affiliateUrl, setAffiliateUrl] = useState('');
+  const [shortUrl, setShortUrl] = useState('');
+  const [shareText, setShareText] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const [affiliateCopyStatus, setAffiliateCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [shortUrlCopyStatus, setShortUrlCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [shareCopyStatus, setShareCopyStatus] = useState<'idle' | 'copied'>('idle');
+
+  const normalizeInputUrl = (raw: string): string | null => {
+    const cleaned = raw.replace(/\u3000/g, ' ').trim();
+    if (!cleaned) {
+      return null;
+    }
+
+    const httpMatch = cleaned.match(/https?:\/\/[^\s"'<>]+/i);
+    if (httpMatch?.[0]) {
+      return httpMatch[0].trim();
+    }
+
+    const appLinkMatch = cleaned.match(/(?:www\.)?skyscanner\.app\.link\/[^\s"'<>]+/i);
+    if (appLinkMatch?.[0]) {
+      return `https://${appLinkMatch[0].replace(/^https?:\/\//i, '')}`;
+    }
+
+    return cleaned;
+  };
+
+  const expandShortUrl = async (url: string): Promise<string> => {
+    const localEndpoint = `/api/expand?url=${encodeURIComponent(url)}`;
+    try {
+      const localResponse = await fetch(localEndpoint, { method: 'GET' });
+      if (localResponse.ok) {
+        const localData: { longUrl?: string } = await localResponse.json();
+        if (localData.longUrl) {
+          return localData.longUrl;
+        }
+      }
+    } catch (_localError) {
+      // Fall through to public CORS proxy for static-hosted builds.
+    }
+
+    const unshortenEndpoint = `https://unshorten.me/json/${encodeURIComponent(url)}`;
+    const proxyResponse = await fetch(unshortenEndpoint, { method: 'GET' });
+
+    if (!proxyResponse.ok) {
+      const body = await proxyResponse.text();
+      throw new Error(`短縮URL展開APIの呼び出しに失敗しました: ${proxyResponse.status} ${body}`);
+    }
+
+    const data: { success?: boolean; resolved_url?: string } = await proxyResponse.json();
+    if (!data.success || !data.resolved_url) {
+      throw new Error('短縮URL展開APIのレスポンスが不正です。');
+    }
+
+    return data.resolved_url;
+  };
+
+  const parseSkyscannerUrl = (url: string): {
+    departure: string;
+    arrival: string;
+    departDate: string;
+    returnDate?: string;
+  } | null => {
+    try {
+      let urlObject = new URL(url);
+
+      // Some app.link URLs resolve to captcha pages that embed the real path in base64 query param.
+      if (urlObject.pathname.includes('/sttc/px/captcha-v2/')) {
+        const encodedPath = urlObject.searchParams.get('url');
+        if (encodedPath) {
+          try {
+            const normalizedBase64 = encodedPath.replace(/-/g, '+').replace(/_/g, '/');
+            const decodedPath = atob(normalizedBase64);
+            if (decodedPath.startsWith('/transport/flights/')) {
+              urlObject = new URL(`https://www.skyscanner.jp${decodedPath}`);
+            }
+          } catch (decodeError) {
+            console.error('Failed to decode captcha url param:', decodeError);
+          }
+        }
+      }
+
+      const pathParts = urlObject.pathname.split('/').filter(p => p);
+
+      if (pathParts.length < 4 || pathParts[0] !== 'transport' || pathParts[1] !== 'flights') {
+        return null;
+      }
+
+      const departure = pathParts[2];
+      const arrival = pathParts[3];
+      let departDate = pathParts[4];
+      
+      // Convert YYYYMMDD to YYMMDD if needed
+      if (departDate.length === 8) {
+        departDate = departDate.substring(2);
+      }
+
+      if (pathParts.length > 5 && pathParts[5] !== 'config') {
+        let returnDate = pathParts[5];
+        if (returnDate.length === 8) {
+            returnDate = returnDate.substring(2);
+        }
+        return { departure, arrival, departDate, returnDate };
+      }
+
+      return { departure, arrival, departDate };
+    } catch (e) {
+      console.error("URL parsing failed:", e);
+      return null;
+    }
+  };
+
+  const generateAffiliateUrl = (params: {
+    departure: string;
+    arrival: string;
+    departDate: string;
+    returnDate?: string;
+  }): string => {
+    const { departure, arrival, departDate, returnDate } = params;
+    const timestamp = String(new Date().getTime());
+    const associateId = "AFF_TRA_19354_00001";
+    const campaignId = "6120265";
+    const utmSource = "6120265-現住所TRaVeLiNG";
+
+    const components = new URL("https://www.skyscanner.jp");
+    let path = `/transport/flights/${departure}/${arrival}/${departDate}/`;
+    if (returnDate) {
+      path += `${returnDate}/`;
+    }
+    components.pathname = path;
+
+    const queryParams = new URLSearchParams({
+      "adultsv2": "1",
+      "cabinclass": "economy",
+      "childrenv2": "",
+      "ref": "home",
+      "rtn": returnDate ? "1" : "0",
+      "preferdirects": "false",
+      "outboundaltsenabled": "false",
+      "inboundaltsenabled": "false",
+      "associateid": associateId,
+      "utm_medium": "affiliate",
+      "utm_source": utmSource,
+      "utm_campaign": "",
+      "campaign_id": campaignId,
+      "utm_content": "Online Tracking Link",
+      "adid": "1027991",
+      "click_timestamp": timestamp,
+      "irmweb": "",
+      "irgwc": "1",
+      "afsrc": "1"
+    });
+    components.search = queryParams.toString();
+
+    return components.toString();
+  };
+
+  const shortenUrl = async (longUrl: string): Promise<string> => {
+    try {
+      const apiKey = "7d2ad123799e3bdd05a3553b5d2f7968";
+      const endpoint = `https://xgd.io/V1/shorten?url=${encodeURIComponent(longUrl)}&key=${apiKey}`;
+      const response = await fetch(endpoint, { method: 'GET' });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`URL shortener request failed with status: ${response.status}. Body: ${errorText}`);
+      }
+
+      const data = await response.json();
+      const shortened = data.shorturl ?? data.shortUrl;
+      if (typeof shortened === 'string' && shortened.length > 0) {
+        return shortened;
+      }
+
+      throw new Error('URL shortener response did not contain shorturl');
+    } catch (e) {
+      console.error(e);
+      return longUrl;
+    }
+  };
+
+  const generateShareText = (url: string, params: {
+    departure: string;
+    arrival: string;
+    departDate: string;
+    returnDate?: string;
+  }) => {
+    const { returnDate } = params;
+    
+    const oneWayTemplate = `✈️スカイスキャナーで検索
+片道: {URL}
+
+📲楽天モバイル
+🌏海外データ2GB/月
+▽乗換で1.4万ptゲット
+https://x.gd/6LqKk
+
+💳️セゾンプラチナビジネス
+✅PP無料付帯
+▽特別招待ー初年度無料＆アマギフ1.2万
+https://x.gd/TYSba`;
+
+    const roundTripTemplate = `✈️スカイスキャナーで検索
+往復: {URL}
+
+📲楽天モバイル
+🌏海外データ2GB/月
+▽乗換で1.4万ptゲット
+https://x.gd/6LqKk
+
+💳️セゾンプラチナビジネス
+✅PP無料付帯
+▽特別招待ー初年度無料＆アマギフ1.2万
+https://x.gd/TYSba`;
+
+    const template = returnDate ? roundTripTemplate : oneWayTemplate;
+
+    return template.replace('{URL}', url);
+  };
+
+  const handleConvert = async () => {
+    setError('');
+    setAffiliateUrl('');
+    setShortUrl('');
+    setShareText('');
+    setAffiliateCopyStatus('idle');
+    setShortUrlCopyStatus('idle');
+    setShareCopyStatus('idle');
+
+    if (!inputUrl) {
+      setError('URLを入力してください。');
+      return;
+    }
+
+    setIsLoading(true);
+
+    const normalized = normalizeInputUrl(inputUrl);
+    if (!normalized) {
+      setError('URLを入力してください。');
+      setIsLoading(false);
+      return;
+    }
+
+    let urlToParse = normalized;
+
+    let parsedInput: URL;
+    try {
+      parsedInput = new URL(urlToParse);
+    } catch (_e) {
+      setError('有効なURLを入力してください。');
+      setIsLoading(false);
+      return;
+    }
+
+    if (parsedInput.hostname.endsWith('skyscanner.app.link')) {
+      try {
+        urlToParse = await expandShortUrl(urlToParse);
+      } catch (e) {
+        console.error(e);
+        setError('短縮URLの展開に失敗しました。時間をおいて再試行してください。');
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    const parsed = parseSkyscannerUrl(urlToParse);
+
+    if (parsed) {
+      const longUrl = generateAffiliateUrl(parsed);
+      setAffiliateUrl(longUrl);
+      const sUrl = await shortenUrl(longUrl);
+      setShortUrl(sUrl);
+      setShareText(generateShareText(sUrl, parsed));
+    } else {
+      setError('有効なSkyscannerのフライト検索URLを解析できませんでした。');
+    }
+    setIsLoading(false);
+  };
+
+  const handleCopy = (text: string, type: 'affiliate' | 'short' | 'share') => {
+    navigator.clipboard.writeText(text);
+    if (type === 'affiliate') {
+      setAffiliateCopyStatus('copied');
+      setTimeout(() => setAffiliateCopyStatus('idle'), 2000);
+    } else if (type === 'short') {
+        setShortUrlCopyStatus('copied');
+        setTimeout(() => setShortUrlCopyStatus('idle'), 2000);
+    } else {
+      setShareCopyStatus('copied');
+      setTimeout(() => setShareCopyStatus('idle'), 2000);
+    }
+  };
+
+  const handlePaste = async () => {
+    try {
+        const text = await navigator.clipboard.readText();
+        setInputUrl(text);
+    } catch (err) {
+        setError('クリップボードの読み取りに失敗しました。');
+    }
+  }
+
+  return (
+    <div className="tool-page compact-page skyscanner-tool" style={{ paddingBottom: '2rem' }}>
+        <div className="tool-page-hero">
+          <h1>
+            <span className="tool-page-illustration">
+              <Link size={22} />
+            </span>
+            Skyscanner Link
+          </h1>
+        </div>
+
+        <div className="card">
+            <h2><Link size={20} /> URLを入力</h2>
+          <p className="tool-description">Skyscannerのフライト検索結果ページURLを貼り付けてください。短縮URL（skyscanner.app.link）にも対応しています。</p>
+            <div className="input-group">
+                <div className="input-with-button">
+                    <textarea
+                      id="skyscanner-url"
+                      value={inputUrl}
+                      onChange={(e) => setInputUrl(e.target.value)}
+                      placeholder="https://skyscanner.app.link/Uk2vpgefS1b"
+                      rows={4}
+                      className="textarea-field"
+                    />
+                    <button onClick={handlePaste} className="button paste-button">
+                        <ClipboardPaste size={20} />
+                        <span>貼り付け</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+      <button onClick={handleConvert} disabled={isLoading} className="button primary-button generate-button">
+        {isLoading ? <Loader className="animate-spin" /> : <Link />}
+        {isLoading ? '生成中...' : 'URLを生成'}
+      </button>
+
+      {error && (
+        <div className="error-box">
+          <AlertCircle />
+          {error}
+        </div>
+      )}
+
+      {(affiliateUrl || shortUrl || shareText) && (
+        <div className="results-grid">
+            {shareText && (
+                <ResultBox 
+                    title="シェアテキスト"
+                    icon={<Share2 />}
+                    content={shareText}
+                    onCopy={() => handleCopy(shareText, 'share')}
+                    copyStatus={shareCopyStatus}
+                    colorClass="color-orange"
+                />
+            )}
+            {shortUrl && (
+                <ResultBox 
+                    title="短縮URL"
+                    icon={<Link />}
+                    content={shortUrl}
+                    onCopy={() => handleCopy(shortUrl, 'short')}
+                    copyStatus={shortUrlCopyStatus}
+                    colorClass="color-purple"
+                />
+            )}
+            {affiliateUrl && (
+                <ResultBox 
+                    title="アフィリエイトURL"
+                    icon={<CheckCircle />}
+                    content={affiliateUrl}
+                    onCopy={() => handleCopy(affiliateUrl, 'affiliate')}
+                    copyStatus={affiliateCopyStatus}
+                    colorClass="color-green"
+                />
+            )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SkyscannerTool;

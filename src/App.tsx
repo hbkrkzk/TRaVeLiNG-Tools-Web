@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Flame, PlaneTakeoff } from 'lucide-react';
+import { ArrowLeft, Flame, PlaneTakeoff, Ticket } from 'lucide-react';
 import BoardingBarcodeTool from './components/BoardingBarcodeTool';
 import FireSimulatorTool from './components/FireSimulatorTool';
+import SkyscannerTool from './components/SkyscannerTool';
 
-type Route = 'home' | 'boarding' | 'fire';
+type Route = 'home' | 'boarding' | 'fire' | 'skyscanner';
 
 const routeByHash: Record<string, Route> = {
   '#/boarding': 'boarding',
   '#/fire': 'fire',
+  '#/skyscanner': 'skyscanner',
 };
 
 const hashByRoute: Record<Route, string> = {
   home: '#/',
   boarding: '#/boarding',
   fire: '#/fire',
+  skyscanner: '#/skyscanner',
 };
 
 const getRouteFromHash = (): Route => routeByHash[window.location.hash] ?? 'home';
@@ -53,14 +56,33 @@ const App = () => {
     );
   }
 
+  if (route === 'skyscanner') {
+    return (
+      <div>
+        <button className="button back-button" onClick={() => navigate('home')}>
+          <ArrowLeft size={18} /> トップへ戻る
+        </button>
+        <SkyscannerTool />
+      </div>
+    );
+  }
+
   return (
-    <main>
-      <section className="hero card">
+    <>
+      <div className="card hero">
         <h1>TRaVeLiNG Tools</h1>
         <p className="hero-subtitle">使いたいツールを選んで開始してください。</p>
-      </section>
+      </div>
 
       <section className="tools-grid">
+        <article className="tool-card card">
+          <h2><Ticket size={20} /> Skyscanner Link</h2>
+          <p className="tool-description">
+            Skyscannerのフライト検索URLをアフィリエイトリンクに変換します。
+          </p>
+          <button className="button" onClick={() => navigate('skyscanner')}>このツールを開く</button>
+        </article>
+
         <article className="tool-card card">
           <h2><PlaneTakeoff size={20} /> Boarding Barcode</h2>
           <p className="tool-description">
@@ -77,7 +99,7 @@ const App = () => {
           <button className="button" onClick={() => navigate('fire')}>このツールを開く</button>
         </article>
       </section>
-    </main>
+    </>
   );
 };
 

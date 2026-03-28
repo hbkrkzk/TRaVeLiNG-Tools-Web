@@ -200,6 +200,25 @@ h2 {
   color: #64748b;
 }
 
+.textarea-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+  background-color: #fdfdff;
+  color: #1e293b;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.textarea-field:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
 .input-field input[type='text'],
 .input-field input[type='date'],
 .input-field select,
@@ -391,3 +410,147 @@ canvas {
     grid-template-columns: 1fr;
   }
 }
+
+/* Skyscanner Tool specific styles */
+.skyscanner-tool .input-with-button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  border-radius: 1rem;
+  padding: 0.6rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.95));
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow:
+    0 10px 24px -18px rgba(15, 23, 42, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.skyscanner-tool .textarea-field {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 0.8rem;
+  border: 1px solid #d1d9e6;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.96rem;
+  line-height: 1.55;
+  min-height: 120px;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.skyscanner-tool .textarea-field:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow:
+    0 0 0 4px rgba(59, 130, 246, 0.14),
+    0 8px 20px -14px rgba(37, 99, 235, 0.45);
+  transform: translateY(-1px);
+}
+
+.skyscanner-tool .textarea-field::placeholder {
+  color: #94a3b8;
+}
+
+.skyscanner-tool .paste-button {
+  position: static;
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8rem;
+  background-color: rgba(255, 255, 255, 0.92);
+  color: #334155;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.skyscanner-tool .paste-button:hover {
+  background-color: #ffffff;
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 6px 14px -10px rgba(30, 64, 175, 0.45);
+}
+
+.skyscanner-tool .generate-button {
+  width: 100%;
+  margin-top: 1rem;
+  font-size: 1rem;
+  padding: 0.8rem;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.result-box {
+  background-color: #fff;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.result-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.result-content {
+  margin: 0 0 1rem 0;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 0.85rem;
+  color: #475569;
+  word-break: break-all;
+  flex-grow: 1;
+  background-color: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  white-space: pre-wrap; /* This will preserve line breaks */
+}
+
+.copy-button-alt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 0.5rem;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.copy-button-alt:hover {
+  opacity: 0.9;
+}
+
+.result-box.color-orange .result-header svg { color: #f97316; }
+.result-box.color-orange .copy-button-alt { background-color: #f97316; }
+
+.result-box.color-purple .result-header svg { color: #8b5cf6; }
+.result-box.color-purple .copy-button-alt { background-color: #8b5cf6; }
+
+.result-box.color-green .result-header svg { color: #16a34a; }
+.result-box.color-green .copy-button-alt { background-color: #16a34a; }
