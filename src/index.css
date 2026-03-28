@@ -476,6 +476,45 @@ canvas {
   box-shadow: 0 6px 14px -10px rgba(30, 64, 175, 0.45);
 }
 
+.skyscanner-tool .input-action-buttons {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.skyscanner-tool .input-action-buttons .paste-button {
+  margin-left: auto;
+}
+
+.skyscanner-tool .reset-button {
+  position: static;
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8rem;
+  background-color: rgba(255, 255, 255, 0.92);
+  color: #334155;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.skyscanner-tool .reset-button:hover:not(:disabled) {
+  background-color: #ffffff;
+  border-color: rgba(239, 68, 68, 0.45);
+  box-shadow: 0 6px 14px -10px rgba(127, 29, 29, 0.35);
+}
+
+.skyscanner-tool .reset-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .skyscanner-tool .generate-button {
   width: 100%;
   margin-top: 1rem;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle } from 'lucide-react';
+import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X } from 'lucide-react';
 
 interface ResultBoxProps {
   title: string;
@@ -331,6 +331,18 @@ https://x.gd/TYSba`;
     }
   }
 
+  const handleReset = () => {
+    setInputUrl('');
+    setAffiliateUrl('');
+    setShortUrl('');
+    setShareText('');
+    setError('');
+    setIsLoading(false);
+    setAffiliateCopyStatus('idle');
+    setShortUrlCopyStatus('idle');
+    setShareCopyStatus('idle');
+  }
+
   return (
     <div className="tool-page compact-page skyscanner-tool" style={{ paddingBottom: '2rem' }}>
         <div className="tool-page-hero">
@@ -355,10 +367,16 @@ https://x.gd/TYSba`;
                       rows={4}
                       className="textarea-field"
                     />
-                    <button onClick={handlePaste} className="button paste-button">
-                        <ClipboardPaste size={20} />
-                        <span>貼り付け</span>
-                    </button>
+                      <div className="input-action-buttons">
+                        <button onClick={handleReset} className="button reset-button" type="button" disabled={!inputUrl && !affiliateUrl && !shortUrl && !shareText && !error}>
+                          <X size={18} />
+                          <span>リセット</span>
+                        </button>
+                        <button onClick={handlePaste} className="button paste-button" type="button">
+                          <ClipboardPaste size={20} />
+                          <span>貼り付け</span>
+                        </button>
+                      </div>
                 </div>
             </div>
         </div>
