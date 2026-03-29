@@ -322,21 +322,14 @@ https://x.gd/TYSba`;
     }
   };
 
-  const handlePasteClick = () => {
-    // テキストエリアにフォーカスを当て、ユーザーが長押しでペーストできるように
-    const textarea = document.getElementById('skyscanner-url') as HTMLTextAreaElement;
-    if (textarea) {
-      textarea.focus();
-      textarea.select();
-    }
-  }
-
-  const handlePasteEvent = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    // ペーストイベント時に自動的にURLをセット
-    e.preventDefault();
-    const pastedText = e.clipboardData.getData('text/plain');
-    if (pastedText) {
-      setInputUrl(pastedText);
+  const handlePasteClick = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setInputUrl(text);
+      }
+    } catch (err) {
+      setError('クリップボードの読み取りに失敗しました。');
     }
   }
 
@@ -372,7 +365,6 @@ https://x.gd/TYSba`;
                       id="skyscanner-url"
                       value={inputUrl}
                       onChange={(e) => setInputUrl(e.target.value)}
-                      onPaste={handlePasteEvent}
                       placeholder="https://skyscanner.app.link/Uk2vpgefS1b"
                       rows={4}
                       className="textarea-field"
