@@ -322,12 +322,21 @@ https://x.gd/TYSba`;
     }
   };
 
-  const handlePaste = async () => {
-    try {
-        const text = await navigator.clipboard.readText();
-        setInputUrl(text);
-    } catch (err) {
-        setError('クリップボードの読み取りに失敗しました。');
+  const handlePasteClick = () => {
+    // テキストエリアにフォーカスを当て、ユーザーが長押しでペーストできるように
+    const textarea = document.getElementById('skyscanner-url') as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.focus();
+      textarea.select();
+    }
+  }
+
+  const handlePasteEvent = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // ペーストイベント時に自動的にURLをセット
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text/plain');
+    if (pastedText) {
+      setInputUrl(pastedText);
     }
   }
 
@@ -363,6 +372,7 @@ https://x.gd/TYSba`;
                       id="skyscanner-url"
                       value={inputUrl}
                       onChange={(e) => setInputUrl(e.target.value)}
+                      onPaste={handlePasteEvent}
                       placeholder="https://skyscanner.app.link/Uk2vpgefS1b"
                       rows={4}
                       className="textarea-field"
@@ -372,7 +382,7 @@ https://x.gd/TYSba`;
                           <X size={18} />
                           <span>リセット</span>
                         </button>
-                        <button onClick={handlePaste} className="button paste-button" type="button">
+                        <button onClick={handlePasteClick} className="button paste-button" type="button">
                           <ClipboardPaste size={20} />
                           <span>貼り付け</span>
                         </button>
