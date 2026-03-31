@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Flame, PlaneTakeoff, Ticket } from 'lucide-react';
 import BoardingBarcodeTool from './components/BoardingBarcodeTool';
 import FireSimulatorTool from './components/FireSimulatorTool';
-import SkyscannerTool from './components/SkyscannerTool';
+import SkyscannerTool, { SkyscannerHistoryPage } from './components/SkyscannerTool';
 
-type Route = 'home' | 'boarding' | 'fire' | 'skyscanner';
+type Route = 'home' | 'boarding' | 'fire' | 'skyscanner' | 'skyscanner-history';
 
 const routeByHash: Record<string, Route> = {
   '#/boarding': 'boarding',
   '#/fire': 'fire',
   '#/skyscanner': 'skyscanner',
+  '#/skyscanner/history': 'skyscanner-history',
 };
 
 const hashByRoute: Record<Route, string> = {
@@ -17,6 +18,7 @@ const hashByRoute: Record<Route, string> = {
   boarding: '#/boarding',
   fire: '#/fire',
   skyscanner: '#/skyscanner',
+  'skyscanner-history': '#/skyscanner/history',
 };
 
 const getRouteFromHash = (): Route => routeByHash[window.location.hash] ?? 'home';
@@ -62,7 +64,18 @@ const App = () => {
         <button className="button back-button" onClick={() => navigate('home')}>
           <ArrowLeft size={18} /> トップへ戻る
         </button>
-        <SkyscannerTool />
+        <SkyscannerTool onOpenHistory={() => navigate('skyscanner-history')} />
+      </div>
+    );
+  }
+
+  if (route === 'skyscanner-history') {
+    return (
+      <div>
+        <button className="button back-button" onClick={() => navigate('skyscanner')}>
+          <ArrowLeft size={18} /> Skyscannerへ戻る
+        </button>
+        <SkyscannerHistoryPage />
       </div>
     );
   }

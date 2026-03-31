@@ -1,5 +1,42 @@
-import React, { useState } from 'react';
-import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X, Trash2, Clock3, Search } from 'lucide-react';
+
+export interface HistoryRecord {
+  id: string;
+  createdAt: number;
+  routeLabel: string;
+  dateLabel: string;
+  tripLabel: string;
+  sourceUrl: string;
+  affiliateUrl: string;
+  shortUrl: string;
+  shareText: string;
+}
+
+const HISTORY_STORAGE_KEY = 'skyscanner_affiliate_history_v1';
+
+const loadHistoryRecords = (): HistoryRecord[] => {
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw) as HistoryRecord[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error('履歴ロード失敗:', e);
+    return [];
+  }
+};
+
+const saveHistoryRecords = (records: HistoryRecord[]) => {
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(records));
+};
+
+const addHistoryRecord = (record: HistoryRecord) => {
+  const next = [record, ...loadHistoryRecords()].slice(0, 100);
+  saveHistoryRecords(next);
+};
 
 interface ResultBoxProps {
   title: string;
@@ -25,7 +62,11 @@ const ResultBox: React.FC<ResultBoxProps> = ({ title, icon, content, onCopy, cop
 );
 
 
-const SkyscannerTool: React.FC = () => {
+type SkyscannerToolProps = {
+  onOpenHistory?: () => void;
+};
+
+const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [inputUrl, setInputUrl] = useState('');
   const [affiliateUrl, setAffiliateUrl] = useState('');
   const [shortUrl, setShortUrl] = useState('');
@@ -141,49 +182,13 @@ const SkyscannerTool: React.FC = () => {
     }
   };
 
-  const generateAffiliateUrl = (params: {
-    departure: string;
-    arrival: string;
-    departDate: string;
-    returnDate?: string;
-  }): string => {
-    const { departure, arrival, departDate, returnDate } = params;
-    const timestamp = String(new Date().getTime());
-    const associateId = "AFF_TRA_19354_00001";
+  const generateAffiliateUrl = (landingPageUrl: string): string => {
     const campaignId = "6120265";
-    const utmSource = "6120265-現住所TRaVeLiNG";
-
-    const components = new URL("https://www.skyscanner.jp");
-    let path = `/transport/flights/${departure}/${arrival}/${departDate}/`;
-    if (returnDate) {
-      path += `${returnDate}/`;
-    }
-    components.pathname = path;
-
-    const queryParams = new URLSearchParams({
-      "adultsv2": "1",
-      "cabinclass": "economy",
-      "childrenv2": "",
-      "ref": "home",
-      "rtn": returnDate ? "1" : "0",
-      "preferdirects": "false",
-      "outboundaltsenabled": "false",
-      "inboundaltsenabled": "false",
-      "associateid": associateId,
-      "utm_medium": "affiliate",
-      "utm_source": utmSource,
-      "utm_campaign": "",
-      "campaign_id": campaignId,
-      "utm_content": "Online Tracking Link",
-      "adid": "1027991",
-      "click_timestamp": timestamp,
-      "irmweb": "",
-      "irgwc": "1",
-      "afsrc": "1"
-    });
-    components.search = queryParams.toString();
-
-    return components.toString();
+    const adId = "1457755";
+    const programId = "13416";
+    
+    const encodedUrl = encodeURIComponent(landingPageUrl);
+    return `https://skyscanner.pxf.io/c/${campaignId}/${adId}/${programId}?u=${encodedUrl}`;
   };
 
   const shortenUrl = async (longUrl: string): Promise<string> => {
@@ -272,20 +277,28 @@ https://x.gd/TYSba`;
       return;
     }
 
-    let urlToParse = normalized;
-
-    let parsedInput: URL;
     try {
-      parsedInput = new URL(urlToParse);
+      new URL(normalized);
     } catch (_e) {
       setError('有効なURLを入力してください。');
       setIsLoading(false);
       return;
     }
 
+    let parseTargetUrl = normalized;
+    let parsedInput: URL;
+    try {
+      parsedInput = new URL(normalized);
+    } catch (_e) {
+      setError('有効なURLを入力してください。');
+      setIsLoading(false);
+      return;
+    }
+
+    // 片道/往復の判定精度を保つため、短縮URLは必ず展開してから判定する
     if (parsedInput.hostname.endsWith('skyscanner.app.link')) {
       try {
-        urlToParse = await expandShortUrl(urlToParse);
+        parseTargetUrl = await expandShortUrl(normalized);
       } catch (e) {
         console.error(e);
         setError('短縮URLの展開に失敗しました。時間をおいて再試行してください。');
@@ -294,16 +307,44 @@ https://x.gd/TYSba`;
       }
     }
 
-    const parsed = parseSkyscannerUrl(urlToParse);
-
+    const parsed = parseSkyscannerUrl(parseTargetUrl);
+    const longUrl = generateAffiliateUrl(normalized);
+    setAffiliateUrl(longUrl);
+    const sUrl = await shortenUrl(longUrl);
+    setShortUrl(sUrl);
     if (parsed) {
-      const longUrl = generateAffiliateUrl(parsed);
-      setAffiliateUrl(longUrl);
-      const sUrl = await shortenUrl(longUrl);
-      setShortUrl(sUrl);
+      const routeArrow = parsed.returnDate ? ' <-> ' : ' -> ';
       setShareText(generateShareText(sUrl, parsed));
+      addHistoryRecord({
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+        routeLabel: `${parsed.departure.toUpperCase()}${routeArrow}${parsed.arrival.toUpperCase()}`,
+        dateLabel: parsed.returnDate ? `往路 ${parsed.departDate} / 復路 ${parsed.returnDate}` : `片道 ${parsed.departDate}`,
+        tripLabel: parsed.returnDate ? '往復' : '片道',
+        sourceUrl: normalized,
+        affiliateUrl: longUrl,
+        shortUrl: sUrl,
+        shareText: generateShareText(sUrl, parsed),
+      });
     } else {
-      setError('有効なSkyscannerのフライト検索URLを解析できませんでした。');
+      // URL形式がSkyscannerの通常パスでなくても、変換自体はそのまま行う
+      const fallbackShareText = generateShareText(sUrl, {
+        departure: '',
+        arrival: '',
+        departDate: '',
+      });
+      setShareText(fallbackShareText);
+      addHistoryRecord({
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+        routeLabel: '判別不可',
+        dateLabel: '-',
+        tripLabel: '不明',
+        sourceUrl: normalized,
+        affiliateUrl: longUrl,
+        shortUrl: sUrl,
+        shareText: fallbackShareText,
+      });
     }
     setIsLoading(false);
   };
@@ -357,7 +398,15 @@ https://x.gd/TYSba`;
         </div>
 
         <div className="card">
-            <h2><Link size={20} /> URLを入力</h2>
+            <div className="history-header-row">
+              <h2><Link size={20} /> URLを入力</h2>
+              {onOpenHistory && (
+                <button className="button history-open-button" type="button" onClick={onOpenHistory}>
+                  <Clock3 size={16} />
+                  <span>履歴</span>
+                </button>
+              )}
+            </div>
           <p className="tool-description">Skyscannerのフライト検索結果ページURLを貼り付けてください。短縮URL（skyscanner.app.link）にも対応しています。</p>
             <div className="input-group">
                 <div className="input-with-button">
@@ -429,6 +478,145 @@ https://x.gd/TYSba`;
             )}
         </div>
       )}
+    </div>
+  );
+};
+
+export const SkyscannerHistoryPage: React.FC = () => {
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setHistoryRecords(loadHistoryRecords());
+  }, []);
+
+  const refreshHistory = () => {
+    setHistoryRecords(loadHistoryRecords());
+  };
+
+  const deleteHistoryRecord = (id: string) => {
+    const next = historyRecords.filter((record) => record.id !== id);
+    saveHistoryRecords(next);
+    refreshHistory();
+  };
+
+  const clearHistory = () => {
+    if (!window.confirm('すべての履歴を削除しますか？')) {
+      return;
+    }
+    saveHistoryRecords([]);
+    refreshHistory();
+  };
+
+  const copyText = async (text: string, key: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setCopyMessage(`${label}をコピーしました`);
+      window.setTimeout(() => {
+        setCopiedKey(null);
+      }, 2600);
+      window.setTimeout(() => {
+        setCopyMessage(null);
+      }, 3000);
+    } catch (_e) {
+      setCopyMessage('コピーに失敗しました');
+      window.setTimeout(() => {
+        setCopyMessage(null);
+      }, 3000);
+    }
+  };
+
+  const filteredHistory = historySearch.trim()
+    ? historyRecords.filter((record) => {
+        const q = historySearch.trim().toLowerCase();
+        return (
+          record.routeLabel.toLowerCase().includes(q)
+          || record.dateLabel.toLowerCase().includes(q)
+          || record.tripLabel.toLowerCase().includes(q)
+          || record.shortUrl.toLowerCase().includes(q)
+        );
+      })
+    : historyRecords;
+
+  const normalizeRouteLabel = (label: string) => {
+    if (label.includes('<->')) {
+      return label.replace(/\s*<->\s*/g, ' <-> ');
+    }
+    return label.replace(/\s*->\s*/g, ' -> ');
+  };
+
+  return (
+    <div className="tool-page compact-page skyscanner-tool history-page" style={{ paddingBottom: '2rem' }}>
+      <div className="card history-card">
+        <div className="history-header-row">
+          <h2><Clock3 size={20} /> 生成履歴</h2>
+          {historyRecords.length > 0 && (
+            <button className="button history-clear-button" type="button" onClick={clearHistory}>
+              <Trash2 size={16} />
+              <span>すべて削除</span>
+            </button>
+          )}
+        </div>
+
+        <div className="history-search-row">
+          <Search size={16} />
+          <input
+            value={historySearch}
+            onChange={(e) => setHistorySearch(e.target.value)}
+            className="history-search-input"
+            placeholder="履歴を検索"
+          />
+        </div>
+
+        {filteredHistory.length === 0 ? (
+          <p className="history-empty">履歴はありません</p>
+        ) : (
+          <div className="history-list">
+            {filteredHistory.map((record) => (
+              <div className="history-item" key={record.id}>
+                <div className="history-item-top">
+                  <span className={`history-tag ${record.tripLabel === '往復' ? 'round' : 'oneway'}`}>{record.tripLabel}</span>
+                  <strong>{normalizeRouteLabel(record.routeLabel)}</strong>
+                  <span className="history-date">{new Date(record.createdAt).toLocaleString('ja-JP')}</span>
+                </div>
+                <div className="history-item-sub">{record.dateLabel}</div>
+                <button
+                  className={`history-item-url history-item-url-button ${copiedKey === `${record.id}:short` ? 'copied' : ''}`}
+                  type="button"
+                  onClick={() => copyText(record.shortUrl, `${record.id}:short`, '短縮URL')}
+                  title="短縮URLをコピー"
+                >
+                  {copiedKey === `${record.id}:short` ? 'コピー済み' : record.shortUrl}
+                </button>
+                <div className="history-actions">
+                  <button className={`button history-action-btn ${copiedKey === `${record.id}:share` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.shareText, `${record.id}:share`, 'シェア文')}>
+                    {copiedKey === `${record.id}:share` ? 'コピー済み' : 'シェア文'}
+                  </button>
+                  <button className={`button history-action-btn ${copiedKey === `${record.id}:stats` ? 'copied' : ''}`} type="button" onClick={() => copyText(`${record.shortUrl}+`, `${record.id}:stats`, '統計用URL')}>
+                    {copiedKey === `${record.id}:stats` ? 'コピー済み' : '統計用URL'}
+                  </button>
+                  <button className={`button history-action-btn ${copiedKey === `${record.id}:source` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.sourceUrl, `${record.id}:source`, '元URL')}>
+                    {copiedKey === `${record.id}:source` ? 'コピー済み' : '元URL'}
+                  </button>
+                  <button
+                    className="button history-action-btn danger delete-action"
+                    type="button"
+                    onClick={() => deleteHistoryRecord(record.id)}
+                    aria-label="この履歴を削除"
+                    title="削除"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {copyMessage && <div className="history-copy-toast">{copyMessage}</div>}
     </div>
   );
 };
