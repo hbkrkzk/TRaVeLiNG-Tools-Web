@@ -184,7 +184,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
 
   const generateAffiliateUrl = (landingPageUrl: string): string => {
     const campaignId = "6120265";
-    const adId = "1457755";
+    const adId = "1027991";
     const programId = "13416";
     
     const encodedUrl = encodeURIComponent(landingPageUrl);
@@ -407,7 +407,7 @@ https://x.gd/TYSba`;
                 </button>
               )}
             </div>
-          <p className="tool-description">Skyscannerのフライト検索結果ページURLを貼り付けてください。短縮URL（skyscanner.app.link）にも対応しています。</p>
+          <p className="tool-description">Skyscannerのフライト検索結果ページURLを貼り付けてください。</p>
             <div className="input-group">
                 <div className="input-with-button">
                     <textarea
