@@ -80,6 +80,10 @@ h2 {
   justify-content: flex-start;
 }
 
+.tool-card button {
+  margin-top: auto;
+}
+
 .tool-card h2 svg {
   padding: 0.45rem;
   border-radius: 999px;
