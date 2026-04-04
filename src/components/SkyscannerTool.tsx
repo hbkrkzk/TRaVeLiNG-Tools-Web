@@ -389,25 +389,35 @@ https://x.gd/TYSba`;
   };
 
   const handlePasteClick = async () => {
+    // フォールバック：入力フィールドにフォーカスして手動ペースト促促
+    const textareaElement = document.querySelector('.skyscanner-tool textarea') as HTMLTextAreaElement;
+    if (!textareaElement) {
+      setError('入力フィールドが見つかりません。');
+      return;
+    }
+
+    // Clipboard API が利用可能か確認
+    if (!navigator.clipboard) {
+      textareaElement.focus();
+      setError('クリップボードへのアクセスが許可されていません。ここに直接ペーストしてください。');
+      return;
+    }
+
     try {
       const text = await navigator.clipboard.readText();
-      if (text) {
-        setInputUrl(text);
+      if (text && text.trim()) {
+        setInputUrl(text.trim());
         setShouldAutoConvert(true);
       } else {
-        setError('クリップボードが空です。');
+        // クリップボードが空の場合は、フィールドにフォーカスして手動ペースト
+        textareaElement.focus();
+        setError('クリップボードが空です。ここに直接ペーストしてください。');
       }
     } catch (err) {
       console.error('Clipboard API エラー:', err);
-      // フォールバック：入力フィールドにフォーカスして手動ペースト促促
-      const textareaElement = document.querySelector('.skyscanner-tool textarea') as HTMLTextAreaElement;
-      if (textareaElement) {
-        textareaElement.focus();
-        textareaElement.select();
-        setError('クリップボードへのアクセスが許可されていません。ここに直接ペーストしてください。');
-      } else {
-        setError('クリップボードの読み取りに失敗しました。');
-      }
+      // Clipboard API が失敗した場合は入力フィールドにフォーカス
+      textareaElement.focus();
+      setError('クリップボードへのアクセスが許可されていません。ここに直接ペーストしてください。');
     }
   }
 
