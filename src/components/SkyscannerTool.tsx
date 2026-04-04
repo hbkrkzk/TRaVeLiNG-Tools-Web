@@ -77,6 +77,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [affiliateCopyStatus, setAffiliateCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shortUrlCopyStatus, setShortUrlCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shareCopyStatus, setShareCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [shouldAutoConvert, setShouldAutoConvert] = useState(false);
 
   const normalizeInputUrl = (raw: string): string | null => {
     const cleaned = raw.replace(/\u3000/g, ' ').trim();
@@ -392,11 +393,23 @@ https://x.gd/TYSba`;
       const text = await navigator.clipboard.readText();
       if (text) {
         setInputUrl(text);
+        setShouldAutoConvert(true);
       }
     } catch (err) {
       setError('クリップボードの読み取りに失敗しました。');
     }
   }
+
+  // 貼り付け時に自動変換を実行
+  useEffect(() => {
+    if (shouldAutoConvert && inputUrl && !isLoading) {
+      setShouldAutoConvert(false);
+      // 次のフレームで実行（inputUrlの更新を確認してから）
+      requestAnimationFrame(() => {
+        handleConvert();
+      });
+    }
+  }, [shouldAutoConvert, inputUrl, isLoading]);
 
   const handleReset = () => {
     setInputUrl('');
