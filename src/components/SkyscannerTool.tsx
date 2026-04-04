@@ -394,9 +394,20 @@ https://x.gd/TYSba`;
       if (text) {
         setInputUrl(text);
         setShouldAutoConvert(true);
+      } else {
+        setError('クリップボードが空です。');
       }
     } catch (err) {
-      setError('クリップボードの読み取りに失敗しました。');
+      console.error('Clipboard API エラー:', err);
+      // フォールバック：入力フィールドにフォーカスして手動ペースト促促
+      const textareaElement = document.querySelector('.skyscanner-tool textarea') as HTMLTextAreaElement;
+      if (textareaElement) {
+        textareaElement.focus();
+        textareaElement.select();
+        setError('クリップボードへのアクセスが許可されていません。ここに直接ペーストしてください。');
+      } else {
+        setError('クリップボードの読み取りに失敗しました。');
+      }
     }
   }
 
