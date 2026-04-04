@@ -182,13 +182,29 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     }
   };
 
-  const generateAffiliateUrl = (landingPageUrl: string): string => {
-    const campaignId = "6120265";
-    const adId = "1027991";
-    const programId = "13416";
-    
-    const encodedUrl = encodeURIComponent(landingPageUrl);
-    return `https://skyscanner.pxf.io/c/${campaignId}/${adId}/${programId}?u=${encodedUrl}`;
+  const generateAffiliateUrlViaApi = async (deepLink: string): Promise<string> => {
+    try {
+      // Use environment variable VITE_API_BASE_URL if set, otherwise use relative path
+      const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+      const endpoint = `${apiBase}/api/affiliate?deepLink=${encodeURIComponent(deepLink)}`;
+      const response = await fetch(endpoint, { method: 'GET' });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Affiliate API request failed with status: ${response.status}. Body: ${errorText}`);
+      }
+
+      const data = await response.json() as { TrackingURL?: string };
+      if (typeof data.TrackingURL === 'string' && data.TrackingURL.length > 0) {
+        // Ensure it has https:// prefix if not already
+        return data.TrackingURL.startsWith('http') ? data.TrackingURL : `https://${data.TrackingURL}`;
+      }
+
+      throw new Error('Affiliate API response did not contain TrackingURL');
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   };
 
   const shortenUrl = async (longUrl: string): Promise<string> => {
@@ -308,9 +324,17 @@ https://x.gd/TYSba`;
     }
 
     const parsed = parseSkyscannerUrl(parseTargetUrl);
-    const longUrl = generateAffiliateUrl(normalized);
-    setAffiliateUrl(longUrl);
-    const sUrl = await shortenUrl(longUrl);
+    let trackingUrl: string;
+    try {
+      trackingUrl = await generateAffiliateUrlViaApi(normalized);
+    } catch (e) {
+      console.error(e);
+      setError('アフィリエイトリンク生成APIの呼び出しに失敗しました。時間をおいて再試行してください。');
+      setIsLoading(false);
+      return;
+    }
+    setAffiliateUrl(trackingUrl);
+    const sUrl = await shortenUrl(trackingUrl);
     setShortUrl(sUrl);
     if (parsed) {
       const routeArrow = parsed.returnDate ? ' <-> ' : ' -> ';
@@ -322,7 +346,7 @@ https://x.gd/TYSba`;
         dateLabel: parsed.returnDate ? `往路 ${parsed.departDate} / 復路 ${parsed.returnDate}` : `片道 ${parsed.departDate}`,
         tripLabel: parsed.returnDate ? '往復' : '片道',
         sourceUrl: normalized,
-        affiliateUrl: longUrl,
+        affiliateUrl: trackingUrl,
         shortUrl: sUrl,
         shareText: generateShareText(sUrl, parsed),
       });
@@ -341,7 +365,7 @@ https://x.gd/TYSba`;
         dateLabel: '-',
         tripLabel: '不明',
         sourceUrl: normalized,
-        affiliateUrl: longUrl,
+        affiliateUrl: trackingUrl,
         shortUrl: sUrl,
         shareText: fallbackShareText,
       });
