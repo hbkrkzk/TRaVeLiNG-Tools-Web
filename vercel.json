@@ -1,9 +1,4 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "env": {
-    "IMPACT_PARTNER_ID": "@impact_partner_id",
-    "IMPACT_API_KEY": "@impact_api_key",
-    "IMPACT_PROGRAM_ID": "13416"
-  }
+  "outputDirectory": "dist"
 }
