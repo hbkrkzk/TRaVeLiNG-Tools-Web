@@ -74,6 +74,8 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [shortUrl, setShortUrl] = useState('');
   const [tripUrl, setTripUrl] = useState('');
   const [travelokaUrl, setTravelokaUrl] = useState('');
+  const [tripComEnabled, setTripComEnabled] = useState(false);
+  const [travelokaEnabled, setTravelokaEnabled] = useState(false);
   const [shareText, setShareText] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -246,38 +248,119 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     arrival: string;
     departDate: string;
     returnDate?: string;
-  }) => {
+  }, tripShortUrl?: string, travelokaShortUrl?: string) => {
     const { returnDate } = params;
     
-    const oneWayTemplate = `✈️スカイスキャナーで検索
-片道: {URL}
-
-📲楽天モバイル
+    let text = "";
+        
+    // パートナーリンクを追加
+    if (tripShortUrl) {
+        text += `✈️Trip.comで予約\n${tripShortUrl}\n\n`;
+    }
+    
+    if (travelokaShortUrl) {
+        text += `✈️Travelokaで予約\n${travelokaShortUrl}\n\n`;
+    }
+    
+    // Skyscanner
+    const tripTypeLabel = returnDate ? "往復" : "片道";
+    text += `🔍️スカイスキャナーで検索\n${tripTypeLabel}: ${url}\n\n`;
+    
+    // パートナー選択がない場合のみ楽天モバイルを表示
+    if (!tripShortUrl && !travelokaShortUrl) {
+        text += `📲楽天モバイル
 🌏海外データ2GB/月
-▽乗換で1.4万ptゲット
-https://x.gd/6LqKk
+▽乗換で1.4万、新規で1.1万ptゲット
+https://x.gd/6LqKk\n\n`;
+    }
 
-💳️セゾンプラチナビジネス
+    text += `💳️セゾンプラチナビジネス
 ✅PP無料付帯
 ▽特別招待ー初年度無料＆アマギフ1.2万
 https://x.gd/TYSba`;
 
-    const roundTripTemplate = `✈️スカイスキャナーで検索
-往復: {URL}
+    return text;
+  };
 
-📲楽天モバイル
-🌏海外データ2GB/月
-▽乗換で1.4万ptゲット
-https://x.gd/6LqKk
+  const formatDateForTrip = (dateStr: string) => {
+    // Input: YYMMDD, Output: yyyy-mm-dd
+    if (dateStr.length === 6) {
+      return `20${dateStr.substring(0,2)}-${dateStr.substring(2,4)}-${dateStr.substring(4,6)}`;
+    }
+    return dateStr;
+  };
 
-💳️セゾンプラチナビジネス
-✅PP無料付帯
-▽特別招待ー初年度無料＆アマギフ1.2万
-https://x.gd/TYSba`;
+  const formatDateForTraveloka = (dateStr: string) => {
+    // Input: YYMMDD, Output: dd-m-yyyy (月は先頭ゼロなし)
+    if (dateStr.length === 6) {
+      const year = `20${dateStr.substring(0,2)}`;
+      const month = dateStr.substring(2,4);
+      const day = dateStr.substring(4,6);
+      const monthInt = parseInt(month, 10);
+      return `${day}-${monthInt}-${year}`;
+    }
+    return dateStr;
+  };
 
-    const template = returnDate ? roundTripTemplate : oneWayTemplate;
+  const generateTripURL = (departure: string, arrival: string, departDate: string, returnDate?: string) => {
+    const baseURL = "https://jp.trip.com/flights/showfarefirst";
+    
+    // 都市コードの補正: 4文字で末尾が'a'なら削除（例: tyoa -> tyo, sela -> sel）
+    const formatCity = (code: string) => {
+        const lowerCode = code.toLowerCase();
+        if (lowerCode.length === 4 && lowerCode.endsWith('a')) {
+            return lowerCode.substring(0, 3);
+        }
+        return lowerCode;
+    };
 
-    return template.replace('{URL}', url);
+    const dcity = formatCity(departure);
+    const acity = formatCity(arrival);
+    
+    const rdateValue = returnDate ? formatDateForTrip(returnDate) : formatDateForTrip(departDate);
+    const triptype = returnDate ? "rt" : "ow";
+    
+    return `${baseURL}?dcity=${dcity}&acity=${acity}&ddate=${formatDateForTrip(departDate)}&rdate=${rdateValue}&triptype=${triptype}&class=y&lowpricesource=searchform&quantity=1&searchboxarg=t&nonstoponly=off&locale=ja-JP&curr=JPY`;
+  };
+
+  const generateTravelokaURL = (departure: string, arrival: string, departDate: string, returnDate?: string) => {
+    const baseURL = "https://www.traveloka.com/ja-jp/flight";
+    const endpoint = returnDate ? "fulltwosearch" : "fullsearch";
+    
+    // BJSAはTravelokaでハンドルできないためPEKに変換
+    const formatCity = (code: string) => code.toUpperCase() === 'BJSA' ? 'PEK' : code.toUpperCase();
+    
+    const ap = `${formatCity(departure)}.${formatCity(arrival)}`;
+    
+    // 日付フォーマット: dd-m-yyyy (例: 12-6-2026)
+    const depDateFormatted = formatDateForTraveloka(departDate);
+    const retDateFormatted = returnDate ? formatDateForTraveloka(returnDate) : "NA";
+    
+    // パラメータ構造を修正
+    return `${baseURL}/${endpoint}?ap=${ap}&dt=${depDateFormatted}.${retDateFormatted}&ps=1.0.0&sc=ECONOMY`;
+  };
+
+  const generatePartnerAffiliateUrlViaApi = async (url: string): Promise<string> => {
+    try {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+      const endpoint = `${apiBase}/api/travelpayouts?url=${encodeURIComponent(url)}`;
+      const response = await fetch(endpoint, { method: 'GET' });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`TravelPayouts API request failed with status: ${response.status}. Body: ${errorText}`);
+      }
+
+      const data = await response.json() as { partner_url: string };
+      if (typeof data.partner_url === 'string' && data.partner_url.length > 0) {
+        return data.partner_url;
+      }
+
+      throw new Error('TravelPayouts API response did not contain partner_url');
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   };
 
   const handleConvert = async () => {
@@ -357,33 +440,27 @@ https://x.gd/TYSba`;
     if (parsed) {
       const { departure, arrival, departDate, returnDate } = parsed;
       
-      // Generate Trip.com JP deep link
-      const tripDeepLink = `https://jp.trip.com/flights/list?departureCity=${departure}&arrivalCity=${arrival}&searchType=${returnDate ? 'RT' : 'OW'}&departDate=20${departDate.substring(0,2)}-${departDate.substring(2,4)}-${departDate.substring(4,6)}${returnDate ? `&returnDate=20${returnDate.substring(0,2)}-${returnDate.substring(2,4)}-${returnDate.substring(4,6)}` : ''}`;
-      
-      // Generate Traveloka JP deep link
-      const travelokaDeepLink = `https://www.traveloka.com/ja-jp/flight/full/search?ap=${departure}.${arrival}&dt=${departDate.substring(4,6)}-${departDate.substring(2,4)}-20${departDate.substring(0,2)}${returnDate ? `.${returnDate.substring(4,6)}-${returnDate.substring(2,4)}-20${returnDate.substring(0,2)}` : ''}&ps=1.0.0&sc=ECONOMY`;
-
       try {
-        const [tripAff, travelokaAff] = await Promise.all([
-          generateAffiliateUrlViaApi(tripDeepLink, '13444'),
-          generateAffiliateUrlViaApi(travelokaDeepLink, '13531')
-        ]);
-        
-        const [tripShort, travelokaShort] = await Promise.all([
-          shortenUrl(tripAff),
-          shortenUrl(travelokaAff)
-        ]);
+        if (tripComEnabled) {
+          const tripDeepLink = generateTripURL(departure, arrival, departDate, returnDate);
+          const tripAff = await generatePartnerAffiliateUrlViaApi(tripDeepLink);
+          finalTripUrl = await shortenUrl(tripAff);
+          setTripUrl(finalTripUrl);
+        }
 
-        finalTripUrl = tripShort;
-        finalTravelokaUrl = travelokaShort;
-        setTripUrl(tripShort);
-        setTravelokaUrl(travelokaShort);
+        if (travelokaEnabled) {
+          const travelokaDeepLink = generateTravelokaURL(departure, arrival, departDate, returnDate);
+          const travelokaAff = await generatePartnerAffiliateUrlViaApi(travelokaDeepLink);
+          finalTravelokaUrl = await shortenUrl(travelokaAff);
+          setTravelokaUrl(finalTravelokaUrl);
+        }
       } catch (e) {
         console.error('Alternative links generation failed:', e);
       }
 
       const routeArrow = parsed.returnDate ? ' <-> ' : ' -> ';
-      setShareText(generateShareText(sUrl, parsed));
+      const generatedShareText = generateShareText(sUrl, parsed, finalTripUrl, finalTravelokaUrl);
+      setShareText(generatedShareText);
       addHistoryRecord({
         id: crypto.randomUUID(),
         createdAt: Date.now(),
@@ -395,7 +472,7 @@ https://x.gd/TYSba`;
         shortUrl: sUrl,
         tripUrl: finalTripUrl,
         travelokaUrl: finalTravelokaUrl,
-        shareText: generateShareText(sUrl, parsed),
+        shareText: generatedShareText,
       });
     } else {
       // URL形式がSkyscannerの通常パスでなくても、変換自体はそのまま行う
@@ -543,6 +620,52 @@ https://x.gd/TYSba`;
                         </button>
                       </div>
                 </div>
+            </div>
+        </div>
+
+        <div className="card">
+            <h2><Plane size={20} /> パートナー選択</h2>
+            <div className="partner-selection-controls" style={{ marginBottom: '1rem' }}>
+              <button 
+                type="button" 
+                className="button" 
+                style={{ 
+                  width: '100%', 
+                  backgroundColor: '#007AFF', 
+                  color: 'white', 
+                  fontWeight: '600',
+                  padding: '0.6rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+                onClick={() => {
+                  setTripComEnabled(true);
+                  setTravelokaEnabled(true);
+                }}
+              >
+                <CheckCircle size={18} />
+                Trip.com & Travelokaを一括選択
+              </button>
+            </div>
+            <div className="input-grid-2">
+                <label className="pension-toggle" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={tripComEnabled} 
+                      onChange={(e) => setTripComEnabled(e.target.checked)} 
+                    />
+                    <span>Trip.com</span>
+                </label>
+                <label className="pension-toggle" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={travelokaEnabled} 
+                      onChange={(e) => setTravelokaEnabled(e.target.checked)} 
+                    />
+                    <span>Traveloka</span>
+                </label>
             </div>
         </div>
 
