@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X, Trash2, Clock3, Search, Plane } from 'lucide-react';
+
 export interface HistoryRecord {
   id: string;
   createdAt: number;
@@ -90,6 +91,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [tripCopyStatus, setTripCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [travelokaCopyStatus, setTravelokaCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [kiwiCopyStatus, setKiwiCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [agodaCopyStatus, setAgodaCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shareCopyStatus, setShareCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shouldAutoConvert, setShouldAutoConvert] = useState(false);
 
@@ -319,11 +321,11 @@ https://x.gd/TYSba`;
   const generateTripURL = (departure: string, arrival: string, departDate: string, returnDate?: string) => {
     const baseURL = "https://jp.trip.com/flights/showfarefirst";
     
-    // 都市コードの補正
+    // 都市コードの補正: 3桁に統一（CSHAはSHAに変換）
     const formatCity = (code: string) => {
         const c = code.toUpperCase();
-        if (c === 'CSHA') return 'sha'; // CSHAはSHAに変換
-        return c.substring(0, 3).toLowerCase(); // 常に3レターに変換
+        if (c === 'CSHA') return 'sha';
+        return c.substring(0, 3).toLowerCase();
     };
 
     const dcity = formatCity(departure);
@@ -406,12 +408,14 @@ https://x.gd/TYSba`;
     setTripUrl('');
     setTravelokaUrl('');
     setKiwiUrl('');
+    setAgodaUrl('');
     setShareText('');
     setAffiliateCopyStatus('idle');
     setShortUrlCopyStatus('idle');
     setTripCopyStatus('idle');
     setTravelokaCopyStatus('idle');
     setKiwiCopyStatus('idle');
+    setAgodaCopyStatus('idle');
     setShareCopyStatus('idle');
 
     if (!inputUrl) {
@@ -560,7 +564,7 @@ https://x.gd/TYSba`;
     setIsLoading(false);
   };
 
-  const handleCopy = (text: string, type: 'affiliate' | 'short' | 'trip' | 'traveloka' | 'kiwi' | 'share') => {
+  const handleCopy = (text: string, type: 'affiliate' | 'short' | 'trip' | 'traveloka' | 'kiwi' | 'agoda' | 'share') => {
     navigator.clipboard.writeText(text);
     if (type === 'affiliate') {
       setAffiliateCopyStatus('copied');
@@ -577,6 +581,9 @@ https://x.gd/TYSba`;
     } else if (type === 'kiwi') {
       setKiwiCopyStatus('copied');
       setTimeout(() => setKiwiCopyStatus('idle'), 2000);
+    } else if (type === 'agoda') {
+      setAgodaCopyStatus('copied');
+      setTimeout(() => setAgodaCopyStatus('idle'), 2000);
     } else {
       setShareCopyStatus('copied');
       setTimeout(() => setShareCopyStatus('idle'), 2000);
@@ -627,17 +634,6 @@ https://x.gd/TYSba`;
     }
   }, [shouldAutoConvert, inputUrl, isLoading]);
 
-            {agodaUrl && (
-                <ResultBox 
-                    title="短縮URL (agoda)"
-                    icon={<Plane />}
-                    content={agodaUrl}
-                    onCopy={() => handleCopy(agodaUrl, 'agoda')}
-                    copyStatus={agodaCopyStatus}
-                    colorClass="color-orange"
-                />
-            )}
-...
   const handleReset = () => {
     setInputUrl('');
     setAffiliateUrl('');
@@ -722,6 +718,7 @@ https://x.gd/TYSba`;
                   setTripComEnabled(true);
                   setTravelokaEnabled(true);
                   setKiwiComEnabled(true);
+                  setAgodaEnabled(true);
                 }}
               >
                 すべて選択
@@ -752,6 +749,14 @@ https://x.gd/TYSba`;
                     />
                     <span>トラベロカ</span>
                 </label>
+                <label className={`compact-toggle ${agodaEnabled ? 'active' : ''}`} style={{ padding: '8px 14px', fontSize: '0.95rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={agodaEnabled} 
+                      onChange={(e) => setAgodaEnabled(e.target.checked)} 
+                    />
+                    <span>agoda</span>
+                </label>
             </div>
         </div>
 
@@ -767,7 +772,7 @@ https://x.gd/TYSba`;
         </div>
       )}
 
-      {(affiliateUrl || shortUrl || shareText || tripUrl || travelokaUrl || kiwiUrl) && (
+      {(affiliateUrl || shortUrl || shareText || tripUrl || travelokaUrl || kiwiUrl || agodaUrl) && (
         <div className="results-grid">
             {shareText && (
                 <ResultBox 
@@ -791,7 +796,7 @@ https://x.gd/TYSba`;
             )}
             {kiwiUrl && (
                 <ResultBox 
-                    title="短縮URL (kiwi)"
+                    title="kiwi.com"
                     icon={<Plane />}
                     content={kiwiUrl}
                     onCopy={() => handleCopy(kiwiUrl, 'kiwi')}
@@ -799,9 +804,19 @@ https://x.gd/TYSba`;
                     colorClass="color-green"
                 />
             )}
+            {agodaUrl && (
+                <ResultBox 
+                    title="agoda"
+                    icon={<Plane />}
+                    content={agodaUrl}
+                    onCopy={() => handleCopy(agodaUrl, 'agoda')}
+                    copyStatus={agodaCopyStatus}
+                    colorClass="color-orange"
+                />
+            )}
             {tripUrl && (
                 <ResultBox 
-                    title="短縮URL (Trip)"
+                    title="Trip.com JP"
                     icon={<Plane />}
                     content={tripUrl}
                     onCopy={() => handleCopy(tripUrl, 'trip')}
@@ -811,22 +826,12 @@ https://x.gd/TYSba`;
             )}
             {travelokaUrl && (
                 <ResultBox 
-                    title="短縮URL (トラベロカ)"
+                    title="Traveloka JP"
                     icon={<Plane />}
                     content={travelokaUrl}
                     onCopy={() => handleCopy(travelokaUrl, 'traveloka')}
                     copyStatus={travelokaCopyStatus}
                     colorClass="color-cyan"
-                />
-            )}
-            {agodaUrl && (
-                <ResultBox 
-                    title="短縮URL (agoda)"
-                    icon={<Plane />}
-                    content={agodaUrl}
-                    onCopy={() => handleCopy(agodaUrl, 'agoda')}
-                    copyStatus={agodaCopyStatus}
-                    colorClass="color-orange"
                 />
             )}
             {affiliateUrl && (
@@ -959,23 +964,23 @@ export const SkyscannerHistoryPage: React.FC = () => {
                     {copiedKey === `${record.id}:share` ? 'コピー済み' : 'シェア文'}
                   </button>
                   {record.kiwiUrl && (
-                    <button className={`button history-action-btn ${copiedKey === `${record.id}:kiwi` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.kiwiUrl!, `${record.id}:kiwi`, 'kiwi')}>
-                      {copiedKey === `${record.id}:kiwi` ? 'コピー済み' : 'kiwi'}
-                    </button>
-                  )}
-                  {record.tripUrl && (
-                    <button className={`button history-action-btn ${copiedKey === `${record.id}:trip` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.tripUrl!, `${record.id}:trip`, 'Trip')}>
-                      {copiedKey === `${record.id}:trip` ? 'コピー済み' : 'Trip'}
-                    </button>
-                  )}
-                  {record.travelokaUrl && (
-                    <button className={`button history-action-btn ${copiedKey === `${record.id}:traveloka` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.travelokaUrl!, `${record.id}:traveloka`, 'トラベロカ')}>
-                      {copiedKey === `${record.id}:traveloka` ? 'コピー済み' : 'トラベロカ'}
+                    <button className={`button history-action-btn ${copiedKey === `${record.id}:kiwi` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.kiwiUrl!, `${record.id}:kiwi`, 'kiwi.com')}>
+                      {copiedKey === `${record.id}:kiwi` ? 'コピー済み' : 'kiwi.com'}
                     </button>
                   )}
                   {record.agodaUrl && (
                     <button className={`button history-action-btn ${copiedKey === `${record.id}:agoda` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.agodaUrl!, `${record.id}:agoda`, 'agoda')}>
                       {copiedKey === `${record.id}:agoda` ? 'コピー済み' : 'agoda'}
+                    </button>
+                  )}
+                  {record.tripUrl && (
+                    <button className={`button history-action-btn ${copiedKey === `${record.id}:trip` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.tripUrl!, `${record.id}:trip`, 'Trip.com')}>
+                      {copiedKey === `${record.id}:trip` ? 'コピー済み' : 'Trip.com'}
+                    </button>
+                  )}
+                  {record.travelokaUrl && (
+                    <button className={`button history-action-btn ${copiedKey === `${record.id}:traveloka` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.travelokaUrl!, `${record.id}:traveloka`, 'トラベロカ')}>
+                      {copiedKey === `${record.id}:traveloka` ? 'コピー済み' : 'トラベロカ'}
                     </button>
                   )}
                   <button className={`button history-action-btn ${copiedKey === `${record.id}:stats` ? 'copied' : ''}`} type="button" onClick={() => copyText(`${record.shortUrl}+`, `${record.id}:stats`, '統計用URL')}>
