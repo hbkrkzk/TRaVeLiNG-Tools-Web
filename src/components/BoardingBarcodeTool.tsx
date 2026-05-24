@@ -7,6 +7,10 @@ import {
   Copy,
   QrCode,
   AlertCircle,
+  Clock3,
+  Trash2,
+  X,
+  Plus,
 } from 'lucide-react';
 
 declare global {
@@ -14,6 +18,31 @@ declare global {
     Module: any;
   }
 }
+
+export interface BoardingHistoryRecord {
+  id: string;
+  createdAt: number;
+  label: string;
+  rawData: string;
+}
+
+const HISTORY_STORAGE_KEY = 'boarding_barcode_history_v1';
+
+const loadHistoryRecords = (): BoardingHistoryRecord[] => {
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error('Failed to load history:', e);
+    return [];
+  }
+};
+
+const saveHistoryRecords = (records: BoardingHistoryRecord[]) => {
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(records));
+};
 
 const BoardingBarcodeTool: React.FC = () => {
   const [firstName, setFirstName] = useState('');
@@ -31,9 +60,16 @@ const BoardingBarcodeTool: React.FC = () => {
   const [rawData, setRawData] = useState('');
   const [error, setError] = useState('');
   const [copyStatus, setCopyStatus] = useState('コピー');
+  
+  const [history, setHistory] = useState<BoardingHistoryRecord[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runRef = useRef<any>(null);
+
+  useEffect(() => {
+    setHistory(loadHistoryRecords());
+  }, []);
 
   const upPadRight = (s: string, n: number) => {
     s = s.toUpperCase();
@@ -125,10 +161,29 @@ const BoardingBarcodeTool: React.FC = () => {
     updateBarcode,
   ]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(rawData);
+  const handleCopy = (text: string = rawData) => {
+    navigator.clipboard.writeText(text);
     setCopyStatus('コピーしました');
     setTimeout(() => setCopyStatus('コピー'), 2000);
+  };
+
+  const handleSaveToHistory = () => {
+    const label = `${from || '???'} -> ${to || '???'} (${operator}${flightNum || '???'})`;
+    const newRecord: BoardingHistoryRecord = {
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+      label,
+      rawData,
+    };
+    const next = [newRecord, ...history].slice(0, 50);
+    setHistory(next);
+    saveHistoryRecords(next);
+  };
+
+  const handleDeleteHistory = (id: string) => {
+    const next = history.filter(r => r.id !== id);
+    setHistory(next);
+    saveHistoryRecords(next);
   };
 
   return (
@@ -141,6 +196,47 @@ const BoardingBarcodeTool: React.FC = () => {
           Boarding Barcode
         </h1>
       </div>
+
+      <div className="history-header-row" style={{ marginBottom: '1rem' }}>
+        <div style={{ flex: 1 }} />
+        <button className="button history-open-button" onClick={() => setIsHistoryOpen(!isHistoryOpen)}>
+          <Clock3 size={16} />
+          <span>履歴</span>
+        </button>
+      </div>
+
+      {isHistoryOpen && (
+        <div className="card">
+          <div className="history-header-row">
+            <h2><Clock3 size={20} /> 履歴</h2>
+            <button className="button reset-button" onClick={() => setIsHistoryOpen(false)} style={{ padding: '4px' }}>
+              <X size={18} />
+            </button>
+          </div>
+          {history.length === 0 ? (
+            <p className="history-empty">履歴はありません</p>
+          ) : (
+            <div className="history-list">
+              {history.map(record => (
+                <div key={record.id} className="history-item">
+                  <div className="history-item-top">
+                    <strong>{record.label}</strong>
+                    <span className="history-date">{new Date(record.createdAt).toLocaleString('ja-JP')}</span>
+                  </div>
+                  <div className="history-actions" style={{ marginTop: '0.5rem' }}>
+                    <button className="button history-action-btn" onClick={() => handleCopy(record.rawData)}>
+                      <Copy size={14} /> 生データをコピー
+                    </button>
+                    <button className="button history-action-btn danger delete-action" onClick={() => handleDeleteHistory(record.id)}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="error-msg">
@@ -242,10 +338,13 @@ const BoardingBarcodeTool: React.FC = () => {
 
         <div className="input-field" style={{ marginTop: '1.5rem' }}>
           <label>IATA生データ文字列</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input type="text" value={rawData} readOnly style={{ flex: 1, backgroundColor: '#f1f5f9' }} />
-            <button className="button" onClick={handleCopy}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <input type="text" value={rawData} readOnly style={{ flex: '1 0 200px', backgroundColor: '#f1f5f9' }} />
+            <button className="button" onClick={() => handleCopy()}>
               <Copy size={18} /> {copyStatus}
+            </button>
+            <button className="button primary-button" onClick={handleSaveToHistory}>
+              <Plus size={18} /> 履歴に保存
             </button>
           </div>
         </div>
