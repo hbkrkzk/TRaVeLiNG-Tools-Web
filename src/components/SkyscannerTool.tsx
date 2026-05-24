@@ -313,8 +313,12 @@ https://x.gd/TYSba`;
   const generateTripURL = (departure: string, arrival: string, departDate: string, returnDate?: string) => {
     const baseURL = "https://jp.trip.com/flights/showfarefirst";
     
-    // 常に3レターに変換 (TYOA -> TYO)
-    const formatCity = (code: string) => code.substring(0, 3).toLowerCase();
+    // 都市コードの補正
+    const formatCity = (code: string) => {
+        const c = code.toUpperCase();
+        if (c === 'CSHA') return 'sha'; // CSHAはSHAに変換
+        return c.substring(0, 3).toLowerCase(); // 常に3レターに変換
+    };
 
     const dcity = formatCity(departure);
     const acity = formatCity(arrival);
@@ -329,16 +333,31 @@ https://x.gd/TYSba`;
     const baseURL = "https://www.traveloka.com/ja-jp/flight";
     const endpoint = returnDate ? "fulltwosearch" : "fullsearch";
     
-    // 空港コードの処理
+    // 都市コードの補正
     const formatCity = (code: string) => {
-        const upper = code.toUpperCase();
-        // BJSAはPEKに変換
-        if (upper === 'BJSA') return 'PEK';
-        // 4レターで末尾がAならそのまま、それ以外で4レターなら3レターに
-        if (upper.length === 4 && !upper.endsWith('A')) {
-            return upper.substring(0, 3);
+        const c = code.toUpperCase();
+        
+        // 特殊変換マップ
+        const specialMap: Record<string, string> = {
+            'TPET': 'TAIA',
+            'BJSA': 'BEIA',
+            'TYOA': 'TYOA',
+            'CSHA': 'SHAA',
+            'BKKT': 'BKKA',
+            'NYCA': 'NEWA',
+            'SELA': 'SEOA'
+        };
+
+        if (specialMap[c]) return specialMap[c];
+        
+        // 4文字で末尾がAならそのまま、それ以外で4文字以上なら3文字に切り詰め
+        if (c.length >= 4) {
+            if (c.endsWith('A')) {
+                return c;
+            }
+            return c.substring(0, 3);
         }
-        return upper;
+        return c;
     };
     
     const ap = `${formatCity(departure)}.${formatCity(arrival)}`;
@@ -470,9 +489,13 @@ https://x.gd/TYSba`;
         }
 
         if (kiwiComEnabled) {
-          // 常に3レターに変換 (TYOA -> TYO)
-          const kiwiDeparture = departure.substring(0, 3).toUpperCase();
-          const kiwiArrival = arrival.substring(0, 3).toUpperCase();
+          const formatKiwi = (code: string) => {
+            const c = code.toUpperCase();
+            if (c === 'CSHA') return 'SHA';
+            return c.substring(0, 3);
+          };
+          const kiwiDeparture = formatKiwi(departure);
+          const kiwiArrival = formatKiwi(arrival);
           const kiwiDeepLink = `https://www.kiwi.com/deep?from=${kiwiDeparture}&to=${kiwiArrival}&departure=${formatDateForTrip(departDate)}${returnDate ? `&return=${formatDateForTrip(returnDate)}` : ''}`;
           const kiwiAff = `https://c111.travelpayouts.com/click?shmarker=731698&promo_id=3791&source_type=customlink&type=click&custom_url=${encodeURIComponent(kiwiDeepLink)}`;
           finalKiwiUrl = await shortenUrl(kiwiAff);
