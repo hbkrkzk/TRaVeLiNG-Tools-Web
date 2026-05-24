@@ -313,11 +313,11 @@ https://x.gd/TYSba`;
   const generateTripURL = (departure: string, arrival: string, departDate: string, returnDate?: string) => {
     const baseURL = "https://jp.trip.com/flights/showfarefirst";
     
-    // 都市コードの補正: 3桁に統一（CSHAはSHAに変換）
+    // 空港コードの処理
     const formatCity = (code: string) => {
-        const c = code.toUpperCase();
-        if (c === 'CSHA') return 'sha';
-        return c.substring(0, 3).toLowerCase();
+        const upper = code.toUpperCase();
+        if (upper === 'CSHA') return 'sha'; // CSHAはSHAに変換
+        return upper.substring(0, 3).toLowerCase(); // 常に3レターに変換
     };
 
     const dcity = formatCity(departure);
@@ -333,31 +333,31 @@ https://x.gd/TYSba`;
     const baseURL = "https://www.traveloka.com/ja-jp/flight";
     const endpoint = returnDate ? "fulltwosearch" : "fullsearch";
     
-    // 都市コードの補正
+    // 特殊な変換マッピング
+    const customMapping: { [key: string]: string } = {
+        "TPET": "TAIA",
+        "BJSA": "BEIA",
+        "TYOA": "TYOA",
+        "CSHA": "SHAA",
+        "BKKT": "BKKA",
+        "NYCA": "NEWA",
+        "SELA": "SEOA"
+    };
+    
+    // 空港コードの処理
     const formatCity = (code: string) => {
-        const c = code.toUpperCase();
+        const upper = code.toUpperCase();
         
-        // 特殊変換マップ
-        const specialMap: Record<string, string> = {
-            'TPET': 'TAIA',
-            'BJSA': 'BEIA',
-            'TYOA': 'TYOA',
-            'CSHA': 'SHAA',
-            'BKKT': 'BKKA',
-            'NYCA': 'NEWA',
-            'SELA': 'SEOA'
-        };
-
-        if (specialMap[c]) return specialMap[c];
-        
-        // 4文字で末尾がAならそのまま、それ以外で4文字以上なら3文字に切り詰め
-        if (c.length >= 4) {
-            if (c.endsWith('A')) {
-                return c;
-            }
-            return c.substring(0, 3);
+        // カスタムマッピングがある場合は適用
+        if (customMapping[upper]) {
+            return customMapping[upper];
         }
-        return c;
+        
+        // 4レターで末尾がAならそのまま、それ以外で4レターなら3レターに
+        if (upper.length === 4 && !upper.endsWith('A')) {
+            return upper.substring(0, 3);
+        }
+        return upper;
     };
     
     const ap = `${formatCity(departure)}.${formatCity(arrival)}`;
@@ -651,7 +651,7 @@ https://x.gd/TYSba`;
                 </button>
               )}
             </div>
-          <p className="tool-description">Skyscanner의 フライト検索結果ページURLを貼り付けてください。</p>
+          <p className="tool-description">Skyscannerの フライト検索結果ページURLを貼り付けてください。</p>
             <div className="input-group">
                 <div className="input-with-button">
                     <textarea
@@ -763,7 +763,7 @@ https://x.gd/TYSba`;
             )}
             {kiwiUrl && (
                 <ResultBox 
-                    title="kiwi.com"
+                    title="短縮URL (kiwi)"
                     icon={<Plane />}
                     content={kiwiUrl}
                     onCopy={() => handleCopy(kiwiUrl, 'kiwi')}
@@ -773,7 +773,7 @@ https://x.gd/TYSba`;
             )}
             {tripUrl && (
                 <ResultBox 
-                    title="Trip.com JP"
+                    title="短縮URL (Trip)"
                     icon={<Plane />}
                     content={tripUrl}
                     onCopy={() => handleCopy(tripUrl, 'trip')}
@@ -783,7 +783,7 @@ https://x.gd/TYSba`;
             )}
             {travelokaUrl && (
                 <ResultBox 
-                    title="Traveloka JP"
+                    title="短縮URL (トラベロカ)"
                     icon={<Plane />}
                     content={travelokaUrl}
                     onCopy={() => handleCopy(travelokaUrl, 'traveloka')}
@@ -921,13 +921,13 @@ export const SkyscannerHistoryPage: React.FC = () => {
                     {copiedKey === `${record.id}:share` ? 'コピー済み' : 'シェア文'}
                   </button>
                   {record.kiwiUrl && (
-                    <button className={`button history-action-btn ${copiedKey === `${record.id}:kiwi` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.kiwiUrl!, `${record.id}:kiwi`, 'kiwi.com')}>
-                      {copiedKey === `${record.id}:kiwi` ? 'コピー済み' : 'kiwi.com'}
+                    <button className={`button history-action-btn ${copiedKey === `${record.id}:kiwi` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.kiwiUrl!, `${record.id}:kiwi`, 'kiwi')}>
+                      {copiedKey === `${record.id}:kiwi` ? 'コピー済み' : 'kiwi'}
                     </button>
                   )}
                   {record.tripUrl && (
-                    <button className={`button history-action-btn ${copiedKey === `${record.id}:trip` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.tripUrl!, `${record.id}:trip`, 'Trip.com')}>
-                      {copiedKey === `${record.id}:trip` ? 'コピー済み' : 'Trip.com'}
+                    <button className={`button history-action-btn ${copiedKey === `${record.id}:trip` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.tripUrl!, `${record.id}:trip`, 'Trip')}>
+                      {copiedKey === `${record.id}:trip` ? 'コピー済み' : 'Trip'}
                     </button>
                   )}
                   {record.travelokaUrl && (
