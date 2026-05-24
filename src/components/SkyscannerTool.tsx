@@ -633,47 +633,55 @@ https://x.gd/TYSba`;
         </div>
 
         <div className="card">
-            <h2><Plane size={20} /> パートナー選択</h2>
-            <div className="partner-selection-controls" style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0 }}><Plane size={20} /> パートナー選択</h2>
               <button 
                 type="button" 
                 className="button" 
                 style={{ 
-                  width: '100%', 
-                  backgroundColor: '#007AFF', 
-                  color: 'white', 
+                  fontSize: '0.75rem',
+                  padding: '4px 10px',
+                  backgroundColor: 'rgba(0, 122, 255, 0.1)',
+                  color: '#007AFF',
                   fontWeight: '600',
-                  padding: '0.6rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
+                  borderRadius: '6px'
                 }}
                 onClick={() => {
                   setTripComEnabled(true);
                   setTravelokaEnabled(true);
+                  setKiwiComEnabled(true);
                 }}
               >
-                <CheckCircle size={18} />
-                Trip.com & Travelokaを一括選択
+                すべて選択
               </button>
             </div>
-            <div className="input-grid-2">
-                <label className="pension-toggle" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <label className={`compact-toggle ${kiwiComEnabled ? 'active' : ''}`}>
+                    <input 
+                      type="checkbox" 
+                      checked={kiwiComEnabled} 
+                      onChange={(e) => setKiwiComEnabled(e.target.checked)} 
+                    />
+                    <CheckCircle size={14} />
+                    <span>kiwi</span>
+                </label>
+                <label className={`compact-toggle ${tripComEnabled ? 'active' : ''}`}>
                     <input 
                       type="checkbox" 
                       checked={tripComEnabled} 
                       onChange={(e) => setTripComEnabled(e.target.checked)} 
                     />
-                    <span>Trip.com</span>
+                    <CheckCircle size={14} />
+                    <span>Trip</span>
                 </label>
-                <label className="pension-toggle" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+                <label className={`compact-toggle ${travelokaEnabled ? 'active' : ''}`}>
                     <input 
                       type="checkbox" 
                       checked={travelokaEnabled} 
                       onChange={(e) => setTravelokaEnabled(e.target.checked)} 
                     />
-                    <span>Traveloka</span>
+                    <CheckCircle size={14} />
+                    <span>トラベロカ</span>
                 </label>
             </div>
         </div>
