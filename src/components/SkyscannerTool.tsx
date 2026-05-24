@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X, Trash2, Clock3, Search } from 'lucide-react';
+import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X, Trash2, Clock3, Search, Plane } from 'lucide-react';
 
 export interface HistoryRecord {
   id: string;
@@ -10,6 +10,8 @@ export interface HistoryRecord {
   sourceUrl: string;
   affiliateUrl: string;
   shortUrl: string;
+  tripUrl?: string;
+  travelokaUrl?: string;
   shareText: string;
 }
 
@@ -70,12 +72,16 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [inputUrl, setInputUrl] = useState('');
   const [affiliateUrl, setAffiliateUrl] = useState('');
   const [shortUrl, setShortUrl] = useState('');
+  const [tripUrl, setTripUrl] = useState('');
+  const [travelokaUrl, setTravelokaUrl] = useState('');
   const [shareText, setShareText] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const [affiliateCopyStatus, setAffiliateCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shortUrlCopyStatus, setShortUrlCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [tripCopyStatus, setTripCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [travelokaCopyStatus, setTravelokaCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shareCopyStatus, setShareCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shouldAutoConvert, setShouldAutoConvert] = useState(false);
 
@@ -183,11 +189,14 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     }
   };
 
-  const generateAffiliateUrlViaApi = async (deepLink: string): Promise<string> => {
+  const generateAffiliateUrlViaApi = async (deepLink: string, programId?: string): Promise<string> => {
     try {
       // Use environment variable VITE_API_BASE_URL if set, otherwise use relative path
       const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-      const endpoint = `${apiBase}/api/affiliate?deepLink=${encodeURIComponent(deepLink)}`;
+      let endpoint = `${apiBase}/api/affiliate?deepLink=${encodeURIComponent(deepLink)}`;
+      if (programId) {
+        endpoint += `&programId=${programId}`;
+      }
       const response = await fetch(endpoint, { method: 'GET' });
 
       if (!response.ok) {
@@ -275,9 +284,13 @@ https://x.gd/TYSba`;
     setError('');
     setAffiliateUrl('');
     setShortUrl('');
+    setTripUrl('');
+    setTravelokaUrl('');
     setShareText('');
     setAffiliateCopyStatus('idle');
     setShortUrlCopyStatus('idle');
+    setTripCopyStatus('idle');
+    setTravelokaCopyStatus('idle');
     setShareCopyStatus('idle');
 
     if (!inputUrl) {
@@ -337,7 +350,38 @@ https://x.gd/TYSba`;
     setAffiliateUrl(trackingUrl);
     const sUrl = await shortenUrl(trackingUrl);
     setShortUrl(sUrl);
+
+    let finalTripUrl = '';
+    let finalTravelokaUrl = '';
+
     if (parsed) {
+      const { departure, arrival, departDate, returnDate } = parsed;
+      
+      // Generate Trip.com JP deep link
+      const tripDeepLink = `https://jp.trip.com/flights/list?departureCity=${departure}&arrivalCity=${arrival}&searchType=${returnDate ? 'RT' : 'OW'}&departDate=20${departDate.substring(0,2)}-${departDate.substring(2,4)}-${departDate.substring(4,6)}${returnDate ? `&returnDate=20${returnDate.substring(0,2)}-${returnDate.substring(2,4)}-${returnDate.substring(4,6)}` : ''}`;
+      
+      // Generate Traveloka JP deep link
+      const travelokaDeepLink = `https://www.traveloka.com/ja-jp/flight/full/search?ap=${departure}.${arrival}&dt=${departDate.substring(4,6)}-${departDate.substring(2,4)}-20${departDate.substring(0,2)}${returnDate ? `.${returnDate.substring(4,6)}-${returnDate.substring(2,4)}-20${returnDate.substring(0,2)}` : ''}&ps=1.0.0&sc=ECONOMY`;
+
+      try {
+        const [tripAff, travelokaAff] = await Promise.all([
+          generateAffiliateUrlViaApi(tripDeepLink, '13444'),
+          generateAffiliateUrlViaApi(travelokaDeepLink, '13531')
+        ]);
+        
+        const [tripShort, travelokaShort] = await Promise.all([
+          shortenUrl(tripAff),
+          shortenUrl(travelokaAff)
+        ]);
+
+        finalTripUrl = tripShort;
+        finalTravelokaUrl = travelokaShort;
+        setTripUrl(tripShort);
+        setTravelokaUrl(travelokaShort);
+      } catch (e) {
+        console.error('Alternative links generation failed:', e);
+      }
+
       const routeArrow = parsed.returnDate ? ' <-> ' : ' -> ';
       setShareText(generateShareText(sUrl, parsed));
       addHistoryRecord({
@@ -349,6 +393,8 @@ https://x.gd/TYSba`;
         sourceUrl: normalized,
         affiliateUrl: trackingUrl,
         shortUrl: sUrl,
+        tripUrl: finalTripUrl,
+        travelokaUrl: finalTravelokaUrl,
         shareText: generateShareText(sUrl, parsed),
       });
     } else {
@@ -374,7 +420,7 @@ https://x.gd/TYSba`;
     setIsLoading(false);
   };
 
-  const handleCopy = (text: string, type: 'affiliate' | 'short' | 'share') => {
+  const handleCopy = (text: string, type: 'affiliate' | 'short' | 'trip' | 'traveloka' | 'share') => {
     navigator.clipboard.writeText(text);
     if (type === 'affiliate') {
       setAffiliateCopyStatus('copied');
@@ -382,6 +428,12 @@ https://x.gd/TYSba`;
     } else if (type === 'short') {
         setShortUrlCopyStatus('copied');
         setTimeout(() => setShortUrlCopyStatus('idle'), 2000);
+    } else if (type === 'trip') {
+      setTripCopyStatus('copied');
+      setTimeout(() => setTripCopyStatus('idle'), 2000);
+    } else if (type === 'traveloka') {
+      setTravelokaCopyStatus('copied');
+      setTimeout(() => setTravelokaCopyStatus('idle'), 2000);
     } else {
       setShareCopyStatus('copied');
       setTimeout(() => setShareCopyStatus('idle'), 2000);
@@ -436,11 +488,15 @@ https://x.gd/TYSba`;
     setInputUrl('');
     setAffiliateUrl('');
     setShortUrl('');
+    setTripUrl('');
+    setTravelokaUrl('');
     setShareText('');
     setError('');
     setIsLoading(false);
     setAffiliateCopyStatus('idle');
     setShortUrlCopyStatus('idle');
+    setTripCopyStatus('idle');
+    setTravelokaCopyStatus('idle');
     setShareCopyStatus('idle');
   }
 
@@ -502,7 +558,7 @@ https://x.gd/TYSba`;
         </div>
       )}
 
-      {(affiliateUrl || shortUrl || shareText) && (
+      {(affiliateUrl || shortUrl || shareText || tripUrl || travelokaUrl) && (
         <div className="results-grid">
             {shareText && (
                 <ResultBox 
@@ -522,6 +578,26 @@ https://x.gd/TYSba`;
                     onCopy={() => handleCopy(shortUrl, 'short')}
                     copyStatus={shortUrlCopyStatus}
                     colorClass="color-purple"
+                />
+            )}
+            {tripUrl && (
+                <ResultBox 
+                    title="Trip.com JP"
+                    icon={<Plane />}
+                    content={tripUrl}
+                    onCopy={() => handleCopy(tripUrl, 'trip')}
+                    copyStatus={tripCopyStatus}
+                    colorClass="color-blue"
+                />
+            )}
+            {travelokaUrl && (
+                <ResultBox 
+                    title="Traveloka JP"
+                    icon={<Plane />}
+                    content={travelokaUrl}
+                    onCopy={() => handleCopy(travelokaUrl, 'traveloka')}
+                    copyStatus={travelokaCopyStatus}
+                    colorClass="color-cyan"
                 />
             )}
             {affiliateUrl && (
@@ -653,6 +729,16 @@ export const SkyscannerHistoryPage: React.FC = () => {
                   <button className={`button history-action-btn ${copiedKey === `${record.id}:share` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.shareText, `${record.id}:share`, 'シェア文')}>
                     {copiedKey === `${record.id}:share` ? 'コピー済み' : 'シェア文'}
                   </button>
+                  {record.tripUrl && (
+                    <button className={`button history-action-btn ${copiedKey === `${record.id}:trip` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.tripUrl!, `${record.id}:trip`, 'Trip.com')}>
+                      {copiedKey === `${record.id}:trip` ? 'コピー済み' : 'Trip.com'}
+                    </button>
+                  )}
+                  {record.travelokaUrl && (
+                    <button className={`button history-action-btn ${copiedKey === `${record.id}:traveloka` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.travelokaUrl!, `${record.id}:traveloka`, 'Traveloka')}>
+                      {copiedKey === `${record.id}:traveloka` ? 'コピー済み' : 'Traveloka'}
+                    </button>
+                  )}
                   <button className={`button history-action-btn ${copiedKey === `${record.id}:stats` ? 'copied' : ''}`} type="button" onClick={() => copyText(`${record.shortUrl}+`, `${record.id}:stats`, '統計用URL')}>
                     {copiedKey === `${record.id}:stats` ? 'コピー済み' : '統計用URL'}
                   </button>

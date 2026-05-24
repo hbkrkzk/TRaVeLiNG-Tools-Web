@@ -598,6 +598,12 @@ canvas {
 .result-box.color-green .result-header svg { color: #16a34a; }
 .result-box.color-green .copy-button-alt { background-color: #16a34a; }
 
+.result-box.color-blue .result-header svg { color: #2563eb; }
+.result-box.color-blue .copy-button-alt { background-color: #2563eb; }
+
+.result-box.color-cyan .result-header svg { color: #0891b2; }
+.result-box.color-cyan .copy-button-alt { background-color: #0891b2; }
+
 .history-card {
   margin-top: 1.25rem;
 }
