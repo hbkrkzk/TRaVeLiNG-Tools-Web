@@ -313,14 +313,8 @@ https://x.gd/TYSba`;
   const generateTripURL = (departure: string, arrival: string, departDate: string, returnDate?: string) => {
     const baseURL = "https://jp.trip.com/flights/showfarefirst";
     
-    // 都市コードの補正: 4文字で末尾が'a'なら削除（例: tyoa -> tyo, sela -> sel）
-    const formatCity = (code: string) => {
-        const lowerCode = code.toLowerCase();
-        if (lowerCode.length === 4 && lowerCode.endsWith('a')) {
-            return lowerCode.substring(0, 3);
-        }
-        return lowerCode;
-    };
+    // 常に3レターに変換 (TYOA -> TYO)
+    const formatCity = (code: string) => code.substring(0, 3).toLowerCase();
 
     const dcity = formatCity(departure);
     const acity = formatCity(arrival);
@@ -335,8 +329,17 @@ https://x.gd/TYSba`;
     const baseURL = "https://www.traveloka.com/ja-jp/flight";
     const endpoint = returnDate ? "fulltwosearch" : "fullsearch";
     
-    // BJSAはTravelokaでハンドルできないためPEKに変換
-    const formatCity = (code: string) => code.toUpperCase() === 'BJSA' ? 'PEK' : code.toUpperCase();
+    // 空港コードの処理
+    const formatCity = (code: string) => {
+        const upper = code.toUpperCase();
+        // BJSAはPEKに変換
+        if (upper === 'BJSA') return 'PEK';
+        // 4レターで末尾がAならそのまま、それ以外で4レターなら3レターに
+        if (upper.length === 4 && !upper.endsWith('A')) {
+            return upper.substring(0, 3);
+        }
+        return upper;
+    };
     
     const ap = `${formatCity(departure)}.${formatCity(arrival)}`;
     
@@ -467,7 +470,10 @@ https://x.gd/TYSba`;
         }
 
         if (kiwiComEnabled) {
-          const kiwiDeepLink = `https://www.kiwi.com/deep?from=${departure.toUpperCase()}&to=${arrival.toUpperCase()}&departure=${formatDateForTrip(departDate)}${returnDate ? `&return=${formatDateForTrip(returnDate)}` : ''}`;
+          // 常に3レターに変換 (TYOA -> TYO)
+          const kiwiDeparture = departure.substring(0, 3).toUpperCase();
+          const kiwiArrival = arrival.substring(0, 3).toUpperCase();
+          const kiwiDeepLink = `https://www.kiwi.com/deep?from=${kiwiDeparture}&to=${kiwiArrival}&departure=${formatDateForTrip(departDate)}${returnDate ? `&return=${formatDateForTrip(returnDate)}` : ''}`;
           const kiwiAff = `https://c111.travelpayouts.com/click?shmarker=731698&promo_id=3791&source_type=customlink&type=click&custom_url=${encodeURIComponent(kiwiDeepLink)}`;
           finalKiwiUrl = await shortenUrl(kiwiAff);
           setKiwiUrl(finalKiwiUrl);
