@@ -76,9 +76,11 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [tripUrl, setTripUrl] = useState('');
   const [travelokaUrl, setTravelokaUrl] = useState('');
   const [kiwiUrl, setKiwiUrl] = useState('');
+  const [agodaUrl, setAgodaUrl] = useState('');
   const [tripComEnabled, setTripComEnabled] = useState(false);
   const [travelokaEnabled, setTravelokaEnabled] = useState(false);
   const [kiwiComEnabled, setKiwiComEnabled] = useState(false);
+  const [agodaEnabled, setAgodaEnabled] = useState(false);
   const [shareText, setShareText] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -252,7 +254,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     arrival: string;
     departDate: string;
     returnDate?: string;
-  }, tripShortUrl?: string, travelokaShortUrl?: string, kiwiShortUrl?: string) => {
+  }, tripShortUrl?: string, travelokaShortUrl?: string, kiwiShortUrl?: string, agodaShortUrl?: string) => {
     const { returnDate } = params;
     
     let text = "";
@@ -263,11 +265,15 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     }
 
     if (tripShortUrl) {
-        text += `✈️Trip comで予約\n${tripShortUrl}\n\n`;
+        text += `✈️Tripで予約\n${tripShortUrl}\n\n`;
     }
     
     if (travelokaShortUrl) {
-        text += `✈️Travelokaで予約\n${travelokaShortUrl}\n\n`;
+        text += `✈️トラベロカで予約\n${travelokaShortUrl}\n\n`;
+    }
+
+    if (agodaShortUrl) {
+        text += `✈️agodaで予約\n${agodaShortUrl}\n\n`;
     }
     
     // Skyscanner
@@ -275,7 +281,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     text += `🔍️スカイスキャナーで検索\n${tripTypeLabel}: ${url}\n\n`;
     
     // パートナー選択がない場合のみ楽天モバイルを表示
-    if (!tripShortUrl && !travelokaShortUrl && !kiwiShortUrl) {
+    if (!tripShortUrl && !travelokaShortUrl && !kiwiShortUrl && !agodaShortUrl) {
         text += `📲楽天モバイル
 🌏海外データ2GB/月
 ▽乗換で1.4万、新規で1.1万ptゲット
@@ -700,31 +706,28 @@ https://x.gd/TYSba`;
               </button>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <label className={`compact-toggle ${kiwiComEnabled ? 'active' : ''}`}>
+                <label className={`compact-toggle ${kiwiComEnabled ? 'active' : ''}`} style={{ padding: '8px 14px', fontSize: '0.95rem' }}>
                     <input 
                       type="checkbox" 
                       checked={kiwiComEnabled} 
                       onChange={(e) => setKiwiComEnabled(e.target.checked)} 
                     />
-                    <CheckCircle size={14} />
                     <span>kiwi</span>
                 </label>
-                <label className={`compact-toggle ${tripComEnabled ? 'active' : ''}`}>
+                <label className={`compact-toggle ${tripComEnabled ? 'active' : ''}`} style={{ padding: '8px 14px', fontSize: '0.95rem' }}>
                     <input 
                       type="checkbox" 
                       checked={tripComEnabled} 
                       onChange={(e) => setTripComEnabled(e.target.checked)} 
                     />
-                    <CheckCircle size={14} />
                     <span>Trip</span>
                 </label>
-                <label className={`compact-toggle ${travelokaEnabled ? 'active' : ''}`}>
+                <label className={`compact-toggle ${travelokaEnabled ? 'active' : ''}`} style={{ padding: '8px 14px', fontSize: '0.95rem' }}>
                     <input 
                       type="checkbox" 
                       checked={travelokaEnabled} 
                       onChange={(e) => setTravelokaEnabled(e.target.checked)} 
                     />
-                    <CheckCircle size={14} />
                     <span>トラベロカ</span>
                 </label>
             </div>
