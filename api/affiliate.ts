@@ -33,9 +33,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Create Basic Auth credentials
-    const credentials = Buffer.from(\`\${partnerId}:\${apiKey}\`).toString('base64');
+    const credentials = Buffer.from(`${partnerId}:${apiKey}`).toString('base64');
 
-    const endpoint = \`https://api.impact.com/Mediapartners/\${partnerId}/Programs/\${programId}/TrackingLinks\`;
+    const endpoint = `https://api.impact.com/Mediapartners/${partnerId}/Programs/${programId}/TrackingLinks`;
     const body = new URLSearchParams({
       DeepLink: deepLink,
       Type: 'vanity',
@@ -44,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Authorization': \`Basic \${credentials}\`,
+        'Authorization': `Basic ${credentials}`,
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -53,8 +53,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(\`Impact.com API error: \${response.status} - \${errorText}\`);
-      throw new Error(\`Impact.com API request failed with status: \${response.status}\`);
+      console.error(`Impact.com API error: ${response.status} - ${errorText}`);
+      throw new Error(`Impact.com API request failed with status: ${response.status}`);
     }
 
     const data = await response.json();
