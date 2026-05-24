@@ -13,7 +13,6 @@ export interface HistoryRecord {
   tripUrl?: string;
   travelokaUrl?: string;
   kiwiUrl?: string;
-  agodaUrl?: string;
   shareText: string;
 }
 
@@ -77,11 +76,9 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [tripUrl, setTripUrl] = useState('');
   const [travelokaUrl, setTravelokaUrl] = useState('');
   const [kiwiUrl, setKiwiUrl] = useState('');
-  const [agodaUrl, setAgodaUrl] = useState('');
   const [tripComEnabled, setTripComEnabled] = useState(false);
   const [travelokaEnabled, setTravelokaEnabled] = useState(false);
   const [kiwiComEnabled, setKiwiComEnabled] = useState(false);
-  const [agodaEnabled, setAgodaEnabled] = useState(false);
   const [shareText, setShareText] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -91,7 +88,6 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [tripCopyStatus, setTripCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [travelokaCopyStatus, setTravelokaCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [kiwiCopyStatus, setKiwiCopyStatus] = useState<'idle' | 'copied'>('idle');
-  const [agodaCopyStatus, setAgodaCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shareCopyStatus, setShareCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shouldAutoConvert, setShouldAutoConvert] = useState(false);
 
@@ -256,7 +252,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     arrival: string;
     departDate: string;
     returnDate?: string;
-  }, tripShortUrl?: string, travelokaShortUrl?: string, kiwiShortUrl?: string, agodaShortUrl?: string) => {
+  }, tripShortUrl?: string, travelokaShortUrl?: string, kiwiShortUrl?: string) => {
     const { returnDate } = params;
     
     let text = "";
@@ -273,17 +269,13 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     if (travelokaShortUrl) {
         text += `✈️トラベロカで予約\n${travelokaShortUrl}\n\n`;
     }
-
-    if (agodaShortUrl) {
-        text += `✈️agodaで予約\n${agodaShortUrl}\n\n`;
-    }
     
     // Skyscanner
     const tripTypeLabel = returnDate ? "往復" : "片道";
     text += `🔍️スカイスキャナーで検索\n${tripTypeLabel}: ${url}\n\n`;
     
     // パートナー選択がない場合のみ楽天モバイルを表示
-    if (!tripShortUrl && !travelokaShortUrl && !kiwiShortUrl && !agodaShortUrl) {
+    if (!tripShortUrl && !travelokaShortUrl && !kiwiShortUrl) {
         text += `📲楽天モバイル
 🌏海外データ2GB/月
 ▽乗換で1.4万、新規で1.1万ptゲット
@@ -408,14 +400,12 @@ https://x.gd/TYSba`;
     setTripUrl('');
     setTravelokaUrl('');
     setKiwiUrl('');
-    setAgodaUrl('');
     setShareText('');
     setAffiliateCopyStatus('idle');
     setShortUrlCopyStatus('idle');
     setTripCopyStatus('idle');
     setTravelokaCopyStatus('idle');
     setKiwiCopyStatus('idle');
-    setAgodaCopyStatus('idle');
     setShareCopyStatus('idle');
 
     if (!inputUrl) {
@@ -479,7 +469,6 @@ https://x.gd/TYSba`;
     let finalTripUrl = '';
     let finalTravelokaUrl = '';
     let finalKiwiUrl = '';
-    let finalAgodaUrl = '';
 
     if (parsed) {
       const { departure, arrival, departDate, returnDate } = parsed;
@@ -512,19 +501,12 @@ https://x.gd/TYSba`;
           finalKiwiUrl = await shortenUrl(kiwiAff);
           setKiwiUrl(finalKiwiUrl);
         }
-
-        if (agodaEnabled) {
-          const agodaDeepLink = `https://www.agoda.com/ja-jp/flights/search?origin=${departure.toUpperCase()}&destination=${arrival.toUpperCase()}&departureDate=${formatDateForTrip(departDate)}&cabinClass=Economy&adults=1`;
-          const agodaAff = `https://c104.travelpayouts.com/click?shmarker=731698&promo_id=2854&source_type=customlink&type=click&custom_url=${encodeURIComponent(agodaDeepLink)}`;
-          finalAgodaUrl = await shortenUrl(agodaAff);
-          setAgodaUrl(finalAgodaUrl);
-        }
       } catch (e) {
         console.error('Alternative links generation failed:', e);
       }
 
       const routeArrow = parsed.returnDate ? ' <-> ' : ' -> ';
-      const generatedShareText = generateShareText(sUrl, parsed, finalTripUrl, finalTravelokaUrl, finalKiwiUrl, finalAgodaUrl);
+      const generatedShareText = generateShareText(sUrl, parsed, finalTripUrl, finalTravelokaUrl, finalKiwiUrl);
       setShareText(generatedShareText);
       addHistoryRecord({
         id: crypto.randomUUID(),
@@ -538,7 +520,6 @@ https://x.gd/TYSba`;
         tripUrl: finalTripUrl,
         travelokaUrl: finalTravelokaUrl,
         kiwiUrl: finalKiwiUrl,
-        agodaUrl: finalAgodaUrl,
         shareText: generatedShareText,
       });
     } else {
@@ -564,7 +545,7 @@ https://x.gd/TYSba`;
     setIsLoading(false);
   };
 
-  const handleCopy = (text: string, type: 'affiliate' | 'short' | 'trip' | 'traveloka' | 'kiwi' | 'agoda' | 'share') => {
+  const handleCopy = (text: string, type: 'affiliate' | 'short' | 'trip' | 'traveloka' | 'kiwi' | 'share') => {
     navigator.clipboard.writeText(text);
     if (type === 'affiliate') {
       setAffiliateCopyStatus('copied');
@@ -581,9 +562,6 @@ https://x.gd/TYSba`;
     } else if (type === 'kiwi') {
       setKiwiCopyStatus('copied');
       setTimeout(() => setKiwiCopyStatus('idle'), 2000);
-    } else if (type === 'agoda') {
-      setAgodaCopyStatus('copied');
-      setTimeout(() => setAgodaCopyStatus('idle'), 2000);
     } else {
       setShareCopyStatus('copied');
       setTimeout(() => setShareCopyStatus('idle'), 2000);
@@ -641,7 +619,6 @@ https://x.gd/TYSba`;
     setTripUrl('');
     setTravelokaUrl('');
     setKiwiUrl('');
-    setAgodaUrl('');
     setShareText('');
     setError('');
     setIsLoading(false);
@@ -650,7 +627,6 @@ https://x.gd/TYSba`;
     setTripCopyStatus('idle');
     setTravelokaCopyStatus('idle');
     setKiwiCopyStatus('idle');
-    setAgodaCopyStatus('idle');
     setShareCopyStatus('idle');
   }
 
@@ -675,7 +651,7 @@ https://x.gd/TYSba`;
                 </button>
               )}
             </div>
-          <p className="tool-description">Skyscannerのフライト検索結果ページURLを貼り付けてください。</p>
+          <p className="tool-description">Skyscanner의 フライト検索結果ページURLを貼り付けてください。</p>
             <div className="input-group">
                 <div className="input-with-button">
                     <textarea
@@ -718,7 +694,6 @@ https://x.gd/TYSba`;
                   setTripComEnabled(true);
                   setTravelokaEnabled(true);
                   setKiwiComEnabled(true);
-                  setAgodaEnabled(true);
                 }}
               >
                 すべて選択
@@ -749,14 +724,6 @@ https://x.gd/TYSba`;
                     />
                     <span>トラベロカ</span>
                 </label>
-                <label className={`compact-toggle ${agodaEnabled ? 'active' : ''}`} style={{ padding: '8px 14px', fontSize: '0.95rem' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={agodaEnabled} 
-                      onChange={(e) => setAgodaEnabled(e.target.checked)} 
-                    />
-                    <span>agoda</span>
-                </label>
             </div>
         </div>
 
@@ -772,7 +739,7 @@ https://x.gd/TYSba`;
         </div>
       )}
 
-      {(affiliateUrl || shortUrl || shareText || tripUrl || travelokaUrl || kiwiUrl || agodaUrl) && (
+      {(affiliateUrl || shortUrl || shareText || tripUrl || travelokaUrl || kiwiUrl) && (
         <div className="results-grid">
             {shareText && (
                 <ResultBox 
@@ -802,16 +769,6 @@ https://x.gd/TYSba`;
                     onCopy={() => handleCopy(kiwiUrl, 'kiwi')}
                     copyStatus={kiwiCopyStatus}
                     colorClass="color-green"
-                />
-            )}
-            {agodaUrl && (
-                <ResultBox 
-                    title="agoda"
-                    icon={<Plane />}
-                    content={agodaUrl}
-                    onCopy={() => handleCopy(agodaUrl, 'agoda')}
-                    copyStatus={agodaCopyStatus}
-                    colorClass="color-orange"
                 />
             )}
             {tripUrl && (
@@ -966,11 +923,6 @@ export const SkyscannerHistoryPage: React.FC = () => {
                   {record.kiwiUrl && (
                     <button className={`button history-action-btn ${copiedKey === `${record.id}:kiwi` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.kiwiUrl!, `${record.id}:kiwi`, 'kiwi.com')}>
                       {copiedKey === `${record.id}:kiwi` ? 'コピー済み' : 'kiwi.com'}
-                    </button>
-                  )}
-                  {record.agodaUrl && (
-                    <button className={`button history-action-btn ${copiedKey === `${record.id}:agoda` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.agodaUrl!, `${record.id}:agoda`, 'agoda')}>
-                      {copiedKey === `${record.id}:agoda` ? 'コピー済み' : 'agoda'}
                     </button>
                   )}
                   {record.tripUrl && (
