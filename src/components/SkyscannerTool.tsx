@@ -436,6 +436,7 @@ https://x.gd/TYSba`;
 
     let finalTripUrl = '';
     let finalTravelokaUrl = '';
+    let finalKiwiUrl = '';
 
     if (parsed) {
       const { departure, arrival, departDate, returnDate } = parsed;
@@ -454,12 +455,20 @@ https://x.gd/TYSba`;
           finalTravelokaUrl = await shortenUrl(travelokaAff);
           setTravelokaUrl(finalTravelokaUrl);
         }
+
+        if (kiwiComEnabled) {
+          const kiwiDeepLink = `https://www.kiwi.com/deep?from=${departure.toUpperCase()}&to=${arrival.toUpperCase()}&departure=${formatDateForTrip(departDate)}${returnDate ? `&return=${formatDateForTrip(returnDate)}` : ''}`;
+          const kiwiAff = `https://c111.travelpayouts.com/click?shmarker=731698&promo_id=3791&source_type=customlink&type=click&custom_url=${encodeURIComponent(kiwiDeepLink)}`;
+          finalKiwiUrl = await shortenUrl(kiwiAff);
+          // Kiwi用のURLステートを他と同様に追加する場合はここで行うが、
+          // 一旦shareTextのために変数を保持
+        }
       } catch (e) {
         console.error('Alternative links generation failed:', e);
       }
 
       const routeArrow = parsed.returnDate ? ' <-> ' : ' -> ';
-      const generatedShareText = generateShareText(sUrl, parsed, finalTripUrl, finalTravelokaUrl);
+      const generatedShareText = generateShareText(sUrl, parsed, finalTripUrl, finalTravelokaUrl, finalKiwiUrl);
       setShareText(generatedShareText);
       addHistoryRecord({
         id: crypto.randomUUID(),
