@@ -255,7 +255,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
         
     // パートナーリンクを追加
     if (tripShortUrl) {
-        text += `✈️Trip.comで予約\n${tripShortUrl}\n\n`;
+        text += `✈️Trip comで予約\n${tripShortUrl}\n\n`;
     }
     
     if (travelokaShortUrl) {
