@@ -12,6 +12,7 @@ export interface HistoryRecord {
   shortUrl: string;
   tripUrl?: string;
   travelokaUrl?: string;
+  kiwiUrl?: string;
   shareText: string;
 }
 
@@ -74,8 +75,10 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [shortUrl, setShortUrl] = useState('');
   const [tripUrl, setTripUrl] = useState('');
   const [travelokaUrl, setTravelokaUrl] = useState('');
+  const [kiwiUrl, setKiwiUrl] = useState('');
   const [tripComEnabled, setTripComEnabled] = useState(false);
   const [travelokaEnabled, setTravelokaEnabled] = useState(false);
+  const [kiwiComEnabled, setKiwiComEnabled] = useState(false);
   const [shareText, setShareText] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -84,6 +87,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [shortUrlCopyStatus, setShortUrlCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [tripCopyStatus, setTripCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [travelokaCopyStatus, setTravelokaCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [kiwiCopyStatus, setKiwiCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shareCopyStatus, setShareCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shouldAutoConvert, setShouldAutoConvert] = useState(false);
 
@@ -248,12 +252,16 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     arrival: string;
     departDate: string;
     returnDate?: string;
-  }, tripShortUrl?: string, travelokaShortUrl?: string) => {
+  }, tripShortUrl?: string, travelokaShortUrl?: string, kiwiShortUrl?: string) => {
     const { returnDate } = params;
     
     let text = "";
         
     // パートナーリンクを追加
+    if (kiwiShortUrl) {
+        text += `✈️kiwiで予約\n${kiwiShortUrl}\n\n`;
+    }
+
     if (tripShortUrl) {
         text += `✈️Trip comで予約\n${tripShortUrl}\n\n`;
     }
@@ -267,7 +275,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
     text += `🔍️スカイスキャナーで検索\n${tripTypeLabel}: ${url}\n\n`;
     
     // パートナー選択がない場合のみ楽天モバイルを表示
-    if (!tripShortUrl && !travelokaShortUrl) {
+    if (!tripShortUrl && !travelokaShortUrl && !kiwiShortUrl) {
         text += `📲楽天モバイル
 🌏海外データ2GB/月
 ▽乗換で1.4万、新規で1.1万ptゲット
@@ -369,11 +377,13 @@ https://x.gd/TYSba`;
     setShortUrl('');
     setTripUrl('');
     setTravelokaUrl('');
+    setKiwiUrl('');
     setShareText('');
     setAffiliateCopyStatus('idle');
     setShortUrlCopyStatus('idle');
     setTripCopyStatus('idle');
     setTravelokaCopyStatus('idle');
+    setKiwiCopyStatus('idle');
     setShareCopyStatus('idle');
 
     if (!inputUrl) {
@@ -460,8 +470,7 @@ https://x.gd/TYSba`;
           const kiwiDeepLink = `https://www.kiwi.com/deep?from=${departure.toUpperCase()}&to=${arrival.toUpperCase()}&departure=${formatDateForTrip(departDate)}${returnDate ? `&return=${formatDateForTrip(returnDate)}` : ''}`;
           const kiwiAff = `https://c111.travelpayouts.com/click?shmarker=731698&promo_id=3791&source_type=customlink&type=click&custom_url=${encodeURIComponent(kiwiDeepLink)}`;
           finalKiwiUrl = await shortenUrl(kiwiAff);
-          // Kiwi用のURLステートを他と同様に追加する場合はここで行うが、
-          // 一旦shareTextのために変数を保持
+          setKiwiUrl(finalKiwiUrl);
         }
       } catch (e) {
         console.error('Alternative links generation failed:', e);
@@ -481,6 +490,7 @@ https://x.gd/TYSba`;
         shortUrl: sUrl,
         tripUrl: finalTripUrl,
         travelokaUrl: finalTravelokaUrl,
+        kiwiUrl: finalKiwiUrl,
         shareText: generatedShareText,
       });
     } else {
@@ -506,7 +516,7 @@ https://x.gd/TYSba`;
     setIsLoading(false);
   };
 
-  const handleCopy = (text: string, type: 'affiliate' | 'short' | 'trip' | 'traveloka' | 'share') => {
+  const handleCopy = (text: string, type: 'affiliate' | 'short' | 'trip' | 'traveloka' | 'kiwi' | 'share') => {
     navigator.clipboard.writeText(text);
     if (type === 'affiliate') {
       setAffiliateCopyStatus('copied');
@@ -520,6 +530,9 @@ https://x.gd/TYSba`;
     } else if (type === 'traveloka') {
       setTravelokaCopyStatus('copied');
       setTimeout(() => setTravelokaCopyStatus('idle'), 2000);
+    } else if (type === 'kiwi') {
+      setKiwiCopyStatus('copied');
+      setTimeout(() => setKiwiCopyStatus('idle'), 2000);
     } else {
       setShareCopyStatus('copied');
       setTimeout(() => setShareCopyStatus('idle'), 2000);
@@ -576,6 +589,7 @@ https://x.gd/TYSba`;
     setShortUrl('');
     setTripUrl('');
     setTravelokaUrl('');
+    setKiwiUrl('');
     setShareText('');
     setError('');
     setIsLoading(false);
@@ -583,6 +597,7 @@ https://x.gd/TYSba`;
     setShortUrlCopyStatus('idle');
     setTripCopyStatus('idle');
     setTravelokaCopyStatus('idle');
+    setKiwiCopyStatus('idle');
     setShareCopyStatus('idle');
   }
 
@@ -698,7 +713,7 @@ https://x.gd/TYSba`;
         </div>
       )}
 
-      {(affiliateUrl || shortUrl || shareText || tripUrl || travelokaUrl) && (
+      {(affiliateUrl || shortUrl || shareText || tripUrl || travelokaUrl || kiwiUrl) && (
         <div className="results-grid">
             {shareText && (
                 <ResultBox 
@@ -718,6 +733,16 @@ https://x.gd/TYSba`;
                     onCopy={() => handleCopy(shortUrl, 'short')}
                     copyStatus={shortUrlCopyStatus}
                     colorClass="color-purple"
+                />
+            )}
+            {kiwiUrl && (
+                <ResultBox 
+                    title="kiwi.com"
+                    icon={<Plane />}
+                    content={kiwiUrl}
+                    onCopy={() => handleCopy(kiwiUrl, 'kiwi')}
+                    copyStatus={kiwiCopyStatus}
+                    colorClass="color-green"
                 />
             )}
             {tripUrl && (
@@ -869,6 +894,11 @@ export const SkyscannerHistoryPage: React.FC = () => {
                   <button className={`button history-action-btn ${copiedKey === `${record.id}:share` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.shareText, `${record.id}:share`, 'シェア文')}>
                     {copiedKey === `${record.id}:share` ? 'コピー済み' : 'シェア文'}
                   </button>
+                  {record.kiwiUrl && (
+                    <button className={`button history-action-btn ${copiedKey === `${record.id}:kiwi` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.kiwiUrl!, `${record.id}:kiwi`, 'kiwi.com')}>
+                      {copiedKey === `${record.id}:kiwi` ? 'コピー済み' : 'kiwi.com'}
+                    </button>
+                  )}
                   {record.tripUrl && (
                     <button className={`button history-action-btn ${copiedKey === `${record.id}:trip` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.tripUrl!, `${record.id}:trip`, 'Trip.com')}>
                       {copiedKey === `${record.id}:trip` ? 'コピー済み' : 'Trip.com'}
