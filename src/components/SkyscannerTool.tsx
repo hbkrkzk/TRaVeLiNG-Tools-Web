@@ -285,7 +285,7 @@ https://x.gd/6LqKk\n\n`;
     text += `💳️セゾンプラチナビジネス
 ✅PP無料付帯
 ▽特別招待ー初年度無料＆アマギフ1.2万
-https://x.gd/TYSba`;
+https://x.gd/xdQok`;
 
     return text;
   };
