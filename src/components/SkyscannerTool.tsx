@@ -80,6 +80,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [travelokaEnabled, setTravelokaEnabled] = useState(false);
   const [kiwiComEnabled, setKiwiComEnabled] = useState(false);
   const [shareText, setShareText] = useState('');
+  const [routeInfo, setRouteInfo] = useState<{ routeLabel: string; tripLabel: string } | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
@@ -401,6 +402,7 @@ https://x.gd/xdQok`;
     setTravelokaUrl('');
     setKiwiUrl('');
     setShareText('');
+    setRouteInfo(null);
     setAffiliateCopyStatus('idle');
     setShortUrlCopyStatus('idle');
     setTripCopyStatus('idle');
@@ -506,6 +508,11 @@ https://x.gd/xdQok`;
       }
 
       const routeArrow = parsed.returnDate ? ' <-> ' : ' -> ';
+      const tripLabel = parsed.returnDate ? '往復' : '片道';
+      setRouteInfo({
+        routeLabel: `${parsed.departure.toUpperCase()}${routeArrow}${parsed.arrival.toUpperCase()}`,
+        tripLabel,
+      });
       const generatedShareText = generateShareText(sUrl, parsed, finalTripUrl, finalTravelokaUrl, finalKiwiUrl);
       setShareText(generatedShareText);
       addHistoryRecord({
@@ -513,7 +520,7 @@ https://x.gd/xdQok`;
         createdAt: Date.now(),
         routeLabel: `${parsed.departure.toUpperCase()}${routeArrow}${parsed.arrival.toUpperCase()}`,
         dateLabel: parsed.returnDate ? `往路 ${parsed.departDate} / 復路 ${parsed.returnDate}` : `片道 ${parsed.departDate}`,
-        tripLabel: parsed.returnDate ? '往復' : '片道',
+        tripLabel,
         sourceUrl: normalized,
         affiliateUrl: trackingUrl,
         shortUrl: sUrl,
@@ -620,6 +627,7 @@ https://x.gd/xdQok`;
     setTravelokaUrl('');
     setKiwiUrl('');
     setShareText('');
+    setRouteInfo(null);
     setError('');
     setIsLoading(false);
     setAffiliateCopyStatus('idle');
@@ -736,6 +744,18 @@ https://x.gd/xdQok`;
         <div className="error-box">
           <AlertCircle />
           {error}
+        </div>
+      )}
+
+      {routeInfo && (
+        <div className="route-info-bar">
+          <span className="route-info-item">
+            <Plane size={16} />
+            <strong>{routeInfo.routeLabel}</strong>
+          </span>
+          <span className={`history-tag ${routeInfo.tripLabel === '往復' ? 'round' : 'oneway'}`}>
+            {routeInfo.tripLabel}
+          </span>
         </div>
       )}
 
