@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X, Trash2, Clock3, Search, Plane } from 'lucide-react';
+import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X, Trash2, Clock3, Search, Plane, ExternalLink } from 'lucide-react';
 
 export interface HistoryRecord {
   id: string;
@@ -937,39 +937,62 @@ export const SkyscannerHistoryPage: React.FC = () => {
                   <span className="history-date">{new Date(record.createdAt).toLocaleString('ja-JP')}</span>
                 </div>
                 <div className="history-item-sub">{record.dateLabel}</div>
-                <button
-                  className={`history-item-url history-item-url-button ${copiedKey === `${record.id}:short` ? 'copied' : ''}`}
-                  type="button"
-                  onClick={() => copyText(record.shortUrl, `${record.id}:short`, '短縮URL')}
-                  title="短縮URLをコピー"
-                >
-                  {copiedKey === `${record.id}:short` ? 'コピー済み' : record.shortUrl}
-                </button>
+                <div className="history-item-urls">
+                  <a
+                    className="history-item-url history-item-url-link"
+                    href={record.shortUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="短縮URLを開く"
+                  >
+                    <ExternalLink size={14} />
+                    {record.shortUrl}
+                  </a>
+                  <a
+                    className="history-item-url history-item-url-link history-stats-url"
+                    href={`${record.shortUrl}+`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="統計用URLを開く"
+                  >
+                    <ExternalLink size={14} />
+                    統計用URL
+                  </a>
+                </div>
                 <div className="history-actions">
                   <button className={`button history-action-btn ${copiedKey === `${record.id}:share` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.shareText, `${record.id}:share`, 'シェア文')}>
                     {copiedKey === `${record.id}:share` ? 'コピー済み' : 'シェア文'}
                   </button>
                   {record.kiwiUrl && (
-                    <button className={`button history-action-btn ${copiedKey === `${record.id}:kiwi` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.kiwiUrl!, `${record.id}:kiwi`, 'kiwi')}>
-                      {copiedKey === `${record.id}:kiwi` ? 'コピー済み' : 'kiwi'}
-                    </button>
+                    <a className="button history-action-btn history-ota-link" href={`${record.kiwiUrl}`} target="_blank" rel="noopener noreferrer" title="kiwiを開く">
+                      <ExternalLink size={13} /> kiwi
+                    </a>
+                  )}
+                  {record.kiwiUrl && (
+                    <a className="button history-action-btn history-ota-link history-stats-url" href={`${record.kiwiUrl}+`} target="_blank" rel="noopener noreferrer" title="kiwi+を開く">
+                      <ExternalLink size={13} /> kiwi+
+                    </a>
                   )}
                   {record.tripUrl && (
-                    <button className={`button history-action-btn ${copiedKey === `${record.id}:trip` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.tripUrl!, `${record.id}:trip`, 'Trip')}>
-                      {copiedKey === `${record.id}:trip` ? 'コピー済み' : 'Trip'}
-                    </button>
+                    <a className="button history-action-btn history-ota-link" href={record.tripUrl} target="_blank" rel="noopener noreferrer" title="Tripを開く">
+                      <ExternalLink size={13} /> Trip
+                    </a>
+                  )}
+                  {record.tripUrl && (
+                    <a className="button history-action-btn history-ota-link history-stats-url" href={`${record.tripUrl}+`} target="_blank" rel="noopener noreferrer" title="Trip+を開く">
+                      <ExternalLink size={13} /> Trip+
+                    </a>
                   )}
                   {record.travelokaUrl && (
-                    <button className={`button history-action-btn ${copiedKey === `${record.id}:traveloka` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.travelokaUrl!, `${record.id}:traveloka`, 'トラベロカ')}>
-                      {copiedKey === `${record.id}:traveloka` ? 'コピー済み' : 'トラベロカ'}
-                    </button>
+                    <a className="button history-action-btn history-ota-link" href={record.travelokaUrl} target="_blank" rel="noopener noreferrer" title="トラベロカを開く">
+                      <ExternalLink size={13} /> トラベロカ
+                    </a>
                   )}
-                  <button className={`button history-action-btn ${copiedKey === `${record.id}:stats` ? 'copied' : ''}`} type="button" onClick={() => copyText(`${record.shortUrl}+`, `${record.id}:stats`, '統計用URL')}>
-                    {copiedKey === `${record.id}:stats` ? 'コピー済み' : '統計用URL'}
-                  </button>
-                  <button className={`button history-action-btn ${copiedKey === `${record.id}:source` ? 'copied' : ''}`} type="button" onClick={() => copyText(record.sourceUrl, `${record.id}:source`, '元URL')}>
-                    {copiedKey === `${record.id}:source` ? 'コピー済み' : '元URL'}
-                  </button>
+                  {record.travelokaUrl && (
+                    <a className="button history-action-btn history-ota-link history-stats-url" href={`${record.travelokaUrl}+`} target="_blank" rel="noopener noreferrer" title="トラベロカ+を開く">
+                      <ExternalLink size={13} /> トラベロカ+
+                    </a>
+                  )}
                   <button
                     className="button history-action-btn danger delete-action"
                     type="button"

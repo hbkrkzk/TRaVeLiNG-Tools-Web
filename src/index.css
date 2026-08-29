@@ -803,6 +803,46 @@ canvas {
   border-color: #a7f3d0;
 }
 
+.history-item-urls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+
+.history-item-url-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.history-item-url-link:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.history-stats-url {
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.history-stats-url:hover {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.history-ota-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
 .history-item-url-button,
 .history-action-btn,
 .history-clear-button,
