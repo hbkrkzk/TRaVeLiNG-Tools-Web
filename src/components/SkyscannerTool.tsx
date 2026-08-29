@@ -576,35 +576,28 @@ https://x.gd/xdQok`;
   };
 
   const handlePasteClick = async () => {
-    // フォールバック：入力フィールドにフォーカスして手動ペースト促促
-    const textareaElement = document.querySelector('.skyscanner-tool textarea') as HTMLTextAreaElement;
-    if (!textareaElement) {
-      setError('入力フィールドが見つかりません。');
-      return;
-    }
-
-    // Clipboard API が利用可能か確認
-    if (!navigator.clipboard) {
-      textareaElement.focus();
-      setError('クリップボードへのアクセスが許可されていません。ここに直接ペーストしてください。');
+    // iOS Safariでは、クリップボードの読み取り（navigator.clipboard.readText）を
+    // ユーザー操作後の最初の処理として同期的に呼び出す必要がある。
+    // await や他の処理を挟むとユーザー操作（gesture）が失効し、必ず失敗する。
+    if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+      setError('このブラウザではクリップボードの自動読み取りに対応していません。入力欄を長押しして「ペースト」してください。');
       return;
     }
 
     try {
       const text = await navigator.clipboard.readText();
-      if (text && text.trim()) {
-        setInputUrl(text.trim());
+      const trimmed = text?.trim();
+      if (trimmed) {
+        setError('');
+        setInputUrl(trimmed);
         setShouldAutoConvert(true);
       } else {
-        // クリップボードが空の場合は、フィールドにフォーカスして手動ペースト
-        textareaElement.focus();
-        setError('クリップボードが空です。ここに直接ペーストしてください。');
+        setError('クリップボードが空です。入力欄を長押しして「ペースト」してください。');
       }
     } catch (err) {
       console.error('Clipboard API エラー:', err);
-      // Clipboard API が失敗した場合は入力フィールドにフォーカス
-      textareaElement.focus();
-      setError('クリップボードへのアクセスが許可されていません。ここに直接ペーストしてください。');
+      // iOS Safariでシステムの「貼り付け」ボタンが拒否された場合など
+      setError('クリップボードへのアクセスが許可されませんでした。入力欄を長押しして「ペースト」してください。');
     }
   }
 
@@ -619,6 +612,16 @@ https://x.gd/xdQok`;
     }
   }, [shouldAutoConvert, inputUrl, isLoading]);
 
+  // ボタンが触られた時点でクリップボード権限を先読み要求（iOS Safari対策）
+  const handlePastePointerEnter = () => {
+    try {
+      navigator.clipboard?.readText().catch(() => {
+        // 権限プロンプトのウォームアップのみが目的。失敗は無視。
+      });
+    } catch (_e) {
+      // 無視
+    }
+  };
   const handleReset = () => {
     setInputUrl('');
     setAffiliateUrl('');
@@ -675,7 +678,13 @@ https://x.gd/xdQok`;
                           <X size={18} />
                           <span>リセット</span>
                         </button>
-                        <button onClick={handlePasteClick} className="button paste-button" type="button">
+                        <button
+                          onClick={handlePasteClick}
+                          onPointerEnter={handlePastePointerEnter}
+                          onTouchStart={handlePastePointerEnter}
+                          className="button paste-button"
+                          type="button"
+                        >
                           <ClipboardPaste size={20} />
                           <span>貼り付け</span>
                         </button>
