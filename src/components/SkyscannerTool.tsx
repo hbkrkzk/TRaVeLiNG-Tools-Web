@@ -206,6 +206,7 @@ const SkyscannerTool: React.FC<SkyscannerToolProps> = ({ onOpenHistory }) => {
   const [travelokaCopyStatus, setTravelokaCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [kiwiCopyStatus, setKiwiCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shareCopyStatus, setShareCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [routeCopyStatus, setRouteCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [shouldAutoConvert, setShouldAutoConvert] = useState(false);
 
   const normalizeInputUrl = (raw: string): string | null => {
@@ -687,7 +688,11 @@ https://x.gd/xdQok`;
       setTimeout(() => setKiwiCopyStatus('idle'), 2000);
     } else {
       setShareCopyStatus('copied');
-      setTimeout(() => setShareCopyStatus('idle'), 2000);
+      setRouteCopyStatus('copied');
+      setTimeout(() => {
+        setShareCopyStatus('idle');
+        setRouteCopyStatus('idle');
+      }, 2000);
     }
   };
 
@@ -708,14 +713,28 @@ https://x.gd/xdQok`;
         setInputUrl(trimmed);
         setShouldAutoConvert(true);
       } else {
-        setError('クリップボードが空です。入力欄を長押しして「ペースト」してください。');
+        // リンク形式でコピーされたURL等はプレーンテキストとして読めず空になることがある
+        setError('クリップボードからURLを読み取れませんでした。入力欄を長押しして「ペースト」してください。ペーストした内容は自動で変換されます。');
       }
     } catch (err) {
       console.error('Clipboard API エラー:', err);
       // iOS Safariでシステムの「貼り付け」ボタンが拒否された場合など
-      setError('クリップボードへのアクセスが許可されませんでした。入力欄を長押しして「ペースト」してください。');
+      setError('クリップボードへのアクセスが許可されませんでした。入力欄を長押しして「ペースト」してください。ペーストした内容は自動で変換されます。');
     }
   }
+
+  // textareaへの手動ペーストを検知して自動変換する。
+  // Safari等では「リンク」としてコピーされたURLが readText() で読めないため、
+  // このpasteイベント経路（プレーンテキストに変換される）が確実。
+  const handleTextareaPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = e.clipboardData.getData('text/plain');
+    const trimmed = text?.trim();
+    if (trimmed) {
+      setError('');
+      setInputUrl(trimmed);
+      setShouldAutoConvert(true);
+    }
+  };
 
   // 貼り付け時に自動変換を実行
   useEffect(() => {
@@ -785,6 +804,7 @@ https://x.gd/xdQok`;
                       id="skyscanner-url"
                       value={inputUrl}
                       onChange={(e) => setInputUrl(e.target.value)}
+                      onPaste={handleTextareaPaste}
                       placeholder="https://skyscanner.app.link/Uk2vpgefS1b"
                       rows={4}
                       className="textarea-field"
@@ -881,6 +901,16 @@ https://x.gd/xdQok`;
           <span className={`history-tag ${routeInfo.tripLabel === '往復' ? 'round' : 'oneway'}`}>
             {routeInfo.tripLabel}
           </span>
+          {shareText && (
+            <button
+              type="button"
+              className={`button route-info-copy-button ${routeCopyStatus === 'copied' ? 'copied' : ''}`}
+              onClick={() => handleCopy(shareText, 'share')}
+            >
+              {routeCopyStatus === 'copied' ? <CheckCircle size={15} /> : <Share2 size={15} />}
+              <span>{routeCopyStatus === 'copied' ? 'コピー完了' : 'シェアテキストをコピー'}</span>
+            </button>
+          )}
         </div>
       )}
 

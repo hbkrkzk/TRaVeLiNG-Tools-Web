@@ -630,6 +630,28 @@ canvas {
   color: #64748b;
 }
 
+.route-info-copy-button {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.78rem;
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.route-info-copy-button:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.route-info-copy-button.copied {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
 .history-card {
   margin-top: 1.25rem;
 }
