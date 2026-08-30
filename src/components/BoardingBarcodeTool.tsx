@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
   Plus,
+  Check,
 } from 'lucide-react';
 
 declare global {
@@ -23,6 +24,17 @@ export interface BoardingHistoryRecord {
   id: string;
   createdAt: number;
   label: string;
+  firstName: string;
+  lastName: string;
+  from: string;
+  to: string;
+  operator: string;
+  flightNum: string;
+  date: string;
+  bookingRef: string;
+  seat: string;
+  boardingIndex: string;
+  cabinClass: string;
   rawData: string;
 }
 
@@ -42,6 +54,64 @@ const loadHistoryRecords = (): BoardingHistoryRecord[] => {
 
 const saveHistoryRecords = (records: BoardingHistoryRecord[]) => {
   localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(records));
+};
+
+// 旧形式(生データのみ)の履歴レコードを新形式に変換する
+const migrateLegacyRecord = (record: any): BoardingHistoryRecord => {
+  if (typeof record?.firstName === 'string') {
+    return record;
+  }
+  const raw: string = typeof record?.rawData === 'string' ? record.rawData : '';
+  let firstName = '';
+  let lastName = '';
+  let from = '';
+  let to = '';
+  let operator = '';
+  let flightNum = '';
+  let bookingRef = '';
+  let seat = '';
+  let boardingIndex = '';
+  let cabinClass = 'Y';
+  let date = new Date().toISOString().slice(0, 10);
+
+  // M1 + 氏名(20) + E + PNR(7) + 出発(3) + 到着(3) + 会社(3) + 便名(5) + 日付(3) + クラス(1) + 座席(4) + 連番(5)
+  if (raw.startsWith('M1') && raw.length >= 57) {
+    const nameField = raw.substring(2, 22);
+    const slashIndex = nameField.indexOf('/');
+    lastName = (slashIndex >= 0 ? nameField.substring(0, slashIndex) : nameField).trim();
+    firstName = slashIndex >= 0 ? nameField.substring(slashIndex + 1).trim() : '';
+    bookingRef = raw.substring(23, 30).trim();
+    from = raw.substring(30, 33).trim();
+    to = raw.substring(33, 36).trim();
+    operator = raw.substring(36, 39).trim();
+    flightNum = raw.substring(39, 44).trim();
+    const doy = parseInt(raw.substring(44, 47), 10);
+    cabinClass = raw.substring(47, 48).trim() || 'Y';
+    seat = raw.substring(48, 52).trim().replace(/^0+(?=.)/, '');
+    const seq = parseInt(raw.substring(52, 57), 10);
+    boardingIndex = Number.isNaN(seq) ? '' : String(seq);
+    if (!Number.isNaN(doy) && doy >= 1 && doy <= 366) {
+      // 年は保存日時から推定(生データには年が含まれないため)
+      const year = new Date(record?.createdAt ?? Date.now()).getFullYear();
+      const parsed = new Date(year, 0, doy);
+      date = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+    }
+  }
+
+  return {
+    ...record,
+    firstName,
+    lastName,
+    from,
+    to,
+    operator,
+    flightNum,
+    date,
+    bookingRef,
+    seat,
+    boardingIndex,
+    cabinClass,
+  };
 };
 
 const BoardingBarcodeTool: React.FC = () => {
@@ -66,9 +136,16 @@ const BoardingBarcodeTool: React.FC = () => {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runRef = useRef<any>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setHistory(loadHistoryRecords());
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
+
+  useEffect(() => {
+    setHistory(loadHistoryRecords().map(migrateLegacyRecord));
   }, []);
 
   const upPadRight = (s: string, n: number) => {
@@ -167,17 +244,64 @@ const BoardingBarcodeTool: React.FC = () => {
     setTimeout(() => setCopyStatus('コピー'), 2000);
   };
 
+  const missingFieldLabels: { key: string; label: string; empty: boolean }[] = [
+    { key: 'firstName', label: '名', empty: firstName.trim() === '' },
+    { key: 'lastName', label: '姓', empty: lastName.trim() === '' },
+    { key: 'from', label: '出発地', empty: from.trim() === '' },
+    { key: 'to', label: '到着地', empty: to.trim() === '' },
+    { key: 'operator', label: '運航会社コード', empty: operator.trim() === '' },
+    { key: 'flightNum', label: '便名', empty: flightNum.trim() === '' },
+    { key: 'date', label: '出発日', empty: date.trim() === '' },
+    { key: 'bookingRef', label: 'PNR', empty: bookingRef.trim() === '' },
+    { key: 'seat', label: '座席番号', empty: seat.trim() === '' },
+    { key: 'boardingIndex', label: '搭乗インデックス', empty: boardingIndex.trim() === '' },
+  ];
+  const missingFields = missingFieldLabels.filter((f) => f.empty);
+  const isFormComplete = missingFields.length === 0;
+
   const handleSaveToHistory = () => {
+    if (!isFormComplete) {
+      setError(`保存できません。次の項目を入力してください: ${missingFields.map((f) => f.label).join('・')}`);
+      return;
+    }
+    setError('');
     const label = `${from || '???'} -> ${to || '???'} (${operator}${flightNum || '???'})`;
     const newRecord: BoardingHistoryRecord = {
       id: crypto.randomUUID(),
       createdAt: Date.now(),
       label,
+      firstName,
+      lastName,
+      from,
+      to,
+      operator,
+      flightNum,
+      date,
+      bookingRef,
+      seat,
+      boardingIndex,
+      cabinClass,
       rawData,
     };
     const next = [newRecord, ...history].slice(0, 50);
     setHistory(next);
     saveHistoryRecords(next);
+  };
+
+  const handleApplyHistory = (record: BoardingHistoryRecord) => {
+    // 旧形式レコード(項目データなし)でもクラッシュしないようフォールバックを付ける
+    setFirstName(record.firstName ?? '');
+    setLastName(record.lastName ?? '');
+    setFrom(record.from ?? '');
+    setTo(record.to ?? '');
+    setOperator(record.operator ?? '');
+    setFlightNum(record.flightNum ?? '');
+    setDate(record.date || new Date().toISOString().slice(0, 10));
+    setBookingRef(record.bookingRef ?? '');
+    setSeat(record.seat ?? '');
+    setBoardingIndex(record.boardingIndex ?? '');
+    setCabinClass(record.cabinClass ?? 'Y');
+    setIsHistoryOpen(false);
   };
 
   const handleDeleteHistory = (id: string) => {
@@ -224,6 +348,9 @@ const BoardingBarcodeTool: React.FC = () => {
                     <span className="history-date">{new Date(record.createdAt).toLocaleString('ja-JP')}</span>
                   </div>
                   <div className="history-actions" style={{ marginTop: '0.5rem' }}>
+                    <button className="button history-action-btn" onClick={() => handleApplyHistory(record)}>
+                      <Check size={14} /> この内容を適用
+                    </button>
                     <button className="button history-action-btn" onClick={() => handleCopy(record.rawData)}>
                       <Copy size={14} /> 生データをコピー
                     </button>
@@ -239,7 +366,7 @@ const BoardingBarcodeTool: React.FC = () => {
       )}
 
       {error && (
-        <div className="error-msg">
+        <div className="error-msg" ref={errorRef}>
           <AlertCircle size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
           {error}
         </div>
@@ -343,7 +470,11 @@ const BoardingBarcodeTool: React.FC = () => {
             <button className="button" onClick={() => handleCopy()}>
               <Copy size={18} /> {copyStatus}
             </button>
-            <button className="button primary-button" onClick={handleSaveToHistory}>
+            <button
+              className="button primary-button"
+              onClick={handleSaveToHistory}
+              title={isFormComplete ? '履歴に保存' : '未入力の項目があります'}
+            >
               <Plus size={18} /> 履歴に保存
             </button>
           </div>

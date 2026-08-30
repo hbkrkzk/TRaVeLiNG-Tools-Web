@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X, Trash2, Clock3, Search, Plane, ExternalLink } from 'lucide-react';
+import { Link, Copy, Share2, AlertCircle, Loader, ClipboardPaste, CheckCircle, X, Trash2, Clock3, Search, Plane, ExternalLink, Download, FileJson, FileSpreadsheet } from 'lucide-react';
 
 export interface HistoryRecord {
   id: string;
@@ -39,6 +39,122 @@ const saveHistoryRecords = (records: HistoryRecord[]) => {
 const addHistoryRecord = (record: HistoryRecord) => {
   const next = [record, ...loadHistoryRecords()].slice(0, 100);
   saveHistoryRecords(next);
+};
+
+const HISTORY_CSV_HEADERS = [
+  'id',
+  'created_at',
+  'trip_label',
+  'departure',
+  'arrival',
+  'depart_date',
+  'return_date',
+  'source_url',
+  'affiliate_url',
+  'short_url',
+  'short_url_stats',
+  'kiwi_url',
+  'kiwi_url_stats',
+  'trip_url',
+  'trip_url_stats',
+  'traveloka_url',
+  'traveloka_url_stats',
+];
+
+const csvEscape = (value: string): string => {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+};
+
+// routeLabel (例: "NRT <-> SIN") を出発地・到着地に分解する
+const parseRouteLabel = (routeLabel: string): { departure: string; arrival: string } => {
+  const parts = routeLabel.split(/<->|->/).map((p) => p.trim());
+  return { departure: parts[0] ?? '', arrival: parts[1] ?? '' };
+};
+
+// dateLabel (例: "往路 260830 / 復路 260906" / "片道 260830") を往路・復路に分解する
+const parseDateLabel = (dateLabel: string): { departDate: string; returnDate: string } => {
+  const roundTripMatch = dateLabel.match(/往路\s*(\S+)\s*\/\s*復路\s*(\S+)/);
+  if (roundTripMatch) {
+    return { departDate: roundTripMatch[1], returnDate: roundTripMatch[2] };
+  }
+  const oneWayMatch = dateLabel.match(/片道\s*(\S+)/);
+  if (oneWayMatch) {
+    return { departDate: oneWayMatch[1], returnDate: '' };
+  }
+  return { departDate: dateLabel, returnDate: '' };
+};
+
+const downloadHistoryFile = (content: string, mimeType: string, extension: string) => {
+  const now = new Date();
+  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `skyscanner_history_${stamp}.${extension}`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+};
+
+const exportHistoryAsCsv = (records: HistoryRecord[]) => {
+  // 先頭にBOMを付けてExcelでの文字化けを防ぐ
+  const rows = records.map((record) => {
+    const { departure, arrival } = parseRouteLabel(record.routeLabel);
+    const { departDate, returnDate } = parseDateLabel(record.dateLabel);
+    return [
+      record.id,
+      new Date(record.createdAt).toISOString(),
+      record.tripLabel,
+      departure,
+      arrival,
+      departDate,
+      returnDate,
+      record.sourceUrl,
+      record.affiliateUrl,
+      record.shortUrl,
+      `${record.shortUrl}+`,
+      record.kiwiUrl ?? '',
+      record.kiwiUrl ? `${record.kiwiUrl}+` : '',
+      record.tripUrl ?? '',
+      record.tripUrl ? `${record.tripUrl}+` : '',
+      record.travelokaUrl ?? '',
+      record.travelokaUrl ? `${record.travelokaUrl}+` : '',
+    ].map(csvEscape).join(',');
+  });
+  const csv = ['﻿' + HISTORY_CSV_HEADERS.join(','), ...rows].join('\r\n');
+  downloadHistoryFile(csv, 'text/csv;charset=utf-8', 'csv');
+};
+
+const exportHistoryAsJson = (records: HistoryRecord[]) => {
+  const data = records.map((record) => {
+    const { departure, arrival } = parseRouteLabel(record.routeLabel);
+    const { departDate, returnDate } = parseDateLabel(record.dateLabel);
+    return {
+      id: record.id,
+      created_at: new Date(record.createdAt).toISOString(),
+      trip_label: record.tripLabel,
+      departure,
+      arrival,
+      depart_date: departDate,
+      return_date: returnDate || null,
+      source_url: record.sourceUrl,
+      affiliate_url: record.affiliateUrl,
+      short_url: record.shortUrl,
+      short_url_stats: `${record.shortUrl}+`,
+      kiwi_url: record.kiwiUrl ?? null,
+      kiwi_url_stats: record.kiwiUrl ? `${record.kiwiUrl}+` : null,
+      trip_url: record.tripUrl ?? null,
+      trip_url_stats: record.tripUrl ? `${record.tripUrl}+` : null,
+      traveloka_url: record.travelokaUrl ?? null,
+      traveloka_url_stats: record.travelokaUrl ? `${record.travelokaUrl}+` : null,
+    };
+  });
+  downloadHistoryFile(JSON.stringify(data, null, 2), 'application/json;charset=utf-8', 'json');
 };
 
 interface ResultBoxProps {
@@ -841,6 +957,7 @@ export const SkyscannerHistoryPage: React.FC = () => {
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     setHistoryRecords(loadHistoryRecords());
@@ -862,6 +979,15 @@ export const SkyscannerHistoryPage: React.FC = () => {
     }
     saveHistoryRecords([]);
     refreshHistory();
+  };
+
+  const handleExport = (format: 'csv' | 'json') => {
+    setShowExportMenu(false);
+    if (format === 'csv') {
+      exportHistoryAsCsv(historyRecords);
+    } else {
+      exportHistoryAsJson(historyRecords);
+    }
   };
 
   const copyText = async (text: string, key: string, label: string) => {
@@ -908,10 +1034,34 @@ export const SkyscannerHistoryPage: React.FC = () => {
         <div className="history-header-row">
           <h2><Clock3 size={20} /> 生成履歴</h2>
           {historyRecords.length > 0 && (
-            <button className="button history-clear-button" type="button" onClick={clearHistory}>
-              <Trash2 size={16} />
-              <span>すべて削除</span>
-            </button>
+            <div className="history-header-actions">
+              <div className="history-export-wrapper">
+                <button
+                  className={`button history-export-button ${showExportMenu ? 'open' : ''}`}
+                  type="button"
+                  onClick={() => setShowExportMenu((v) => !v)}
+                >
+                  <Download size={16} />
+                  <span>エクスポート</span>
+                </button>
+                {showExportMenu && (
+                  <div className="history-export-menu">
+                    <button type="button" onClick={() => handleExport('csv')}>
+                      <FileSpreadsheet size={15} />
+                      <span>CSV (Excel向け)</span>
+                    </button>
+                    <button type="button" onClick={() => handleExport('json')}>
+                      <FileJson size={15} />
+                      <span>JSON (分析向け)</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button className="button history-clear-button" type="button" onClick={clearHistory}>
+                <Trash2 size={16} />
+                <span>すべて削除</span>
+              </button>
+            </div>
           )}
         </div>
 

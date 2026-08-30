@@ -660,6 +660,64 @@ canvas {
   border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
+.history-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.history-export-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.78rem;
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.history-export-button:hover,
+.history-export-button.open {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.history-export-wrapper {
+  position: relative;
+}
+
+.history-export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 180px;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.history-export-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.8rem;
+  background: transparent;
+  border: none;
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-export-menu button:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+
 .history-clear-button {
   display: inline-flex;
   align-items: center;
